@@ -1,0 +1,163 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<meta name="theme-color" content="#141618">
+<title>Admin · PTC Data Console</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="admin.css">
+</head>
+<body>
+
+<!-- ============================================================
+     PIN gate (preview-grade, client side — see README)
+     ============================================================ -->
+<section class="gate" id="gate">
+  <form class="gateCard" id="gateForm">
+    <span class="bars"><i></i><i></i><i></i></span>
+    <h1>Admin data console</h1>
+    <p>Parvati Techno Consultants — enter the staff PIN to view the complete project data.</p>
+    <input id="pin" type="password" autocomplete="off" placeholder="PIN" aria-label="Admin PIN" required>
+    <p class="err" id="gateErr" role="alert" hidden>Incorrect PIN — try again.</p>
+    <button class="btn" type="submit">Unlock ↗</button>
+    <a class="back" href="index.html">← Back to website</a>
+  </form>
+</section>
+
+<!-- ============================================================
+     Console
+     ============================================================ -->
+<div class="app" id="app" hidden>
+  <header class="bar">
+    <a class="brand" href="index.html">
+      <span class="bars"><i></i><i></i><i></i></span>
+      <span><strong>PTC · Admin data console</strong><small>PARVATI TECHNO CONSULTANTS</small></span>
+    </a>
+    <div class="barRight">
+      <a class="ghostbtn" href="index.html">View website ↗</a>
+      <button class="ghostbtn" id="logout" type="button">Lock</button>
+    </div>
+  </header>
+
+  <main class="wrapadmin">
+    <div class="stats" id="stats" aria-label="Data summary"></div>
+
+    <nav class="tabs" id="tabs" aria-label="Data views">
+      <button class="tab active" data-tab="overview" aria-selected="true">Overview</button>
+      <button class="tab" data-tab="featured" aria-selected="false">Featured projects</button>
+      <button class="tab" data-tab="index" aria-selected="false">Project index</button>
+      <button class="tab" data-tab="gallery" aria-selected="false">Photo gallery</button>
+    </nav>
+
+    <!-- ---------- overview ---------- -->
+    <section class="panel active" id="panel-overview">
+      <div class="ovgrid">
+        <article class="card">
+          <h2>Projects by category</h2>
+          <div id="breakdown"></div>
+        </article>
+        <article class="card">
+          <h2>Most repeated locations <small>(project index)</small></h2>
+          <ol class="toplist" id="topLocations"></ol>
+        </article>
+        <article class="card">
+          <h2>Export everything</h2>
+          <p class="muted">Download the complete datasets that power the website — the same file the site loads.</p>
+          <div class="exports big">
+            <button data-export="all-json" type="button">Full backup · JSON</button>
+            <button data-export="index-csv" type="button">Project index · CSV</button>
+            <button data-export="featured-csv" type="button">Featured projects · CSV</button>
+            <button data-export="gallery-csv" type="button">Photo gallery · CSV</button>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <!-- ---------- featured projects ---------- -->
+    <section class="panel" id="panel-featured" hidden>
+      <div class="tools">
+        <input class="q" id="q-featured" type="search" placeholder="Search featured projects… (press /)" autocomplete="off" aria-label="Search featured projects">
+        <div class="chips" data-filters="featured" role="group" aria-label="Filter featured projects">
+          <button class="chip active" data-cat="all" aria-pressed="true">All</button>
+          <button class="chip" data-cat="building" aria-pressed="false">Institutional &amp; Special</button>
+          <button class="chip" data-cat="residential" aria-pressed="false">Residential</button>
+          <button class="chip" data-cat="industrial" aria-pressed="false">Industrial &amp; PEB</button>
+        </div>
+        <div class="exports">
+          <button data-export="featured-csv" type="button">CSV</button>
+          <button data-export="featured-json" type="button">JSON</button>
+        </div>
+      </div>
+      <p class="count" id="count-featured" role="status" aria-live="polite"></p>
+      <div class="tablewrap">
+        <table id="table-featured">
+          <thead><tr><th>Photo</th><th>Project</th><th>Category</th><th>Location</th><th>Detail</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ---------- project index ---------- -->
+    <section class="panel" id="panel-index" hidden>
+      <div class="tools">
+        <input class="q" id="q-index" type="search" placeholder="Search project, city or state… (press /)" autocomplete="off" aria-label="Search the project index">
+        <div class="chips" data-filters="index" role="group" aria-label="Filter the project index">
+          <button class="chip active" data-cat="all" aria-pressed="true">All</button>
+          <button class="chip" data-cat="building" aria-pressed="false">Institutional &amp; Special</button>
+          <button class="chip" data-cat="residential" aria-pressed="false">Residential</button>
+          <button class="chip" data-cat="industrial" aria-pressed="false">Industrial &amp; PEB</button>
+        </div>
+        <div class="exports">
+          <button data-export="index-csv" type="button">CSV</button>
+          <button data-export="index-json" type="button">JSON</button>
+        </div>
+      </div>
+      <p class="count" id="count-index" role="status" aria-live="polite"></p>
+      <div class="tablewrap">
+        <table id="table-index">
+          <thead><tr><th>#</th><th>Category</th><th>Project</th><th>Location</th><th>Detail</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <p class="muted empty" id="empty-index" hidden>No entries match that search.</p>
+    </section>
+
+    <!-- ---------- photo gallery ---------- -->
+    <section class="panel" id="panel-gallery" hidden>
+      <div class="tools">
+        <input class="q" id="q-gallery" type="search" placeholder="Search photographs… (press /)" autocomplete="off" aria-label="Search the photo gallery">
+        <div class="chips" data-filters="gallery" role="group" aria-label="Filter the photo gallery">
+          <button class="chip active" data-cat="all" aria-pressed="true">All</button>
+          <button class="chip" data-cat="Institutional &amp; Special" aria-pressed="false">Institutional &amp; Special</button>
+          <button class="chip" data-cat="Residential" aria-pressed="false">Residential</button>
+          <button class="chip" data-cat="Industrial &amp; PEB" aria-pressed="false">Industrial &amp; PEB</button>
+        </div>
+        <div class="exports">
+          <button data-export="gallery-csv" type="button">CSV</button>
+          <button data-export="gallery-json" type="button">JSON</button>
+        </div>
+      </div>
+      <p class="count" id="count-gallery" role="status" aria-live="polite"></p>
+      <div class="tablewrap">
+        <table id="table-gallery">
+          <thead><tr><th>Photo</th><th>Caption</th><th>Category</th><th>File</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </main>
+
+  <footer class="adminfoot">
+    <span>Parvati Techno Consultants · Admin data console · content from the three company profiles</span>
+    <span>Preview gate only — real access control requires a server.</span>
+  </footer>
+</div>
+
+<script src="data.js"></script>
+<script src="admin.js"></script>
+</body>
+</html>
