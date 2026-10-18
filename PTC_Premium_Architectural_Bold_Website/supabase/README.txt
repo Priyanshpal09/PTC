@@ -1,5 +1,17 @@
 PTC — Supabase setup
 
+CURRENT PROJECT (connected 18 Oct 2026)
+  Project ref : ysmlssbxmqxzsbaqdtor
+  Project URL : https://ysmlssbxmqxzsbaqdtor.supabase.co
+  Keys        : the URL and the anon key live at the top of supabase.js in
+                ../PTC_Premium_Website and ../PTC_Premium_Admin (both are
+                public values — row level security is what protects the data)
+  Contents    : public.projects 50 rows, public.index_entries 174 rows,
+                public.gallery_photos 123 rows
+  Access      : anyone may read; only signed-in staff may insert, update or
+                delete. Staff accounts are added in Supabase
+                → Authentication → Users (turn on "Auto Confirm User").
+
 The website and the admin console can read their content from a Supabase
 (Postgres) database instead of the bundled data.js file. This folder holds
 everything the database needs.
