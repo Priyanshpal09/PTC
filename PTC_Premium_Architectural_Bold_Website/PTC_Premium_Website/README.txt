@@ -7,10 +7,9 @@ FILES
   data.js      shared content data: featured projects, the 174-entry project
                index and the photo gallery. Loaded by both the website and the
                admin console, so editing this one file updates both.
-  admin.html   admin data console markup
-  admin.css    admin console styling (dark theme)
-  admin.js     admin console logic: PIN gate, statistics, tables, search,
-               filters and CSV/JSON export
+  admin.html   admin data console markup (NOT part of this deployment — the
+  admin.css    live console now deploys on its own from ../PTC_Premium_Admin,
+  admin.js     which holds the copy that is actually served. See .vercelignore.)
   assets/      project photographs
   serve.js     tiny static file server (Node, no npm install needed)
 

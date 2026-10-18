@@ -694,4 +694,24 @@
         '?subject=' + subject + '&body=' + body;
     });
   }
+
+  /* ---------------------------------------------------------
+     Live content — supabase.js calls this once the database has
+     answered, so the page moves from the data.js baseline to the
+     live content without a reload. Repeating a search or filter
+     the visitor already applied is harmless: the state is kept.
+     --------------------------------------------------------- */
+  window.PTC_UI = {
+    refresh: function () {
+      categoryLabel = window.PTC.categoryLabel || categoryLabel;
+      projects = window.PTC.projects || projects;
+      indexEntries = window.PTC.indexEntries || indexEntries;
+      gallery = window.PTC.gallery || gallery;
+
+      var activeFilter = $('.filter[data-filter].active');
+      renderProjects(activeFilter ? activeFilter.getAttribute('data-filter') : 'all');
+      renderIndex(true);
+      renderGallery(true);
+    }
+  };
 })();
