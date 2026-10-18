@@ -6,8 +6,12 @@ It is NOT linked from the website and nothing in the website folder is served he
 FILES
   admin.html   console markup (also served at the project root, see vercel.json)
   admin.css    console styling
-  admin.js     console logic: PIN gate, statistics, tables, search, filters, exports
-  data.js      COPY of the website's content data, so the console has something to show
+  admin.js     console logic: staff gate, statistics, tables, search, filters, exports
+  supabase.js  Supabase data layer: reads the live content and holds the staff
+               sign-in. Paste SUPABASE_URL and SUPABASE_ANON_KEY here; with them
+               empty the console reads data.js only.
+  data.js      COPY of the website's content data, and the fallback when the
+               database cannot be reached
   assets/      COPY of the website photographs, used for the table thumbnails
   vercel.json  serves / as the console and sends X-Robots-Tag: noindex, nofollow
 
@@ -29,8 +33,16 @@ KEEPING CONTENT IN STEP
     cp -r ../PTC_Premium_Website/assets .
 
 ACCESS
-  Default PIN: ptc2026 (ADMIN_PIN in admin.js), and the unlock lasts for the
-  browser session. This gate is client-side only: the data and the PIN both ship
-  to the browser, so anyone who loads this URL can read them. Treat the URL as
-  unlisted, not private, and put the console behind real server-side
-  authentication before it holds anything sensitive.
+  Once supabase.js is configured, staff sign in with a Supabase Auth email and
+  password (Authentication → Users in the Supabase dashboard to add accounts).
+  The session is kept in local storage and refreshed automatically; "Lock"
+  signs out. Editing rights in the database are granted only to signed-in
+  users by the row level security policies in ../supabase/schema.sql.
+
+  Until then, or whenever the database is unreachable, the PIN screen is used:
+  default PIN ptc2026 (ADMIN_PIN in admin.js), lasting for the browser session.
+  That gate is client-side only — the data and the PIN both ship to the
+  browser, so treat this URL as unlisted, not private.
+
+  The header badge shows where the numbers came from: "Live · Supabase",
+  "Supabase offline · data.js" or "Local data.js".

@@ -14,17 +14,30 @@
 <body>
 
 <!-- ============================================================
-     PIN gate (preview-grade, client side — see README)
+     Staff sign-in (Supabase Auth) — used once the database is
+     connected; see supabase.js for the project URL and key
      ============================================================ -->
 <section class="gate" id="gate">
+  <form class="gateCard" id="signForm" hidden>
+    <span class="bars"><i></i><i></i><i></i></span>
+    <h1>Staff sign-in</h1>
+    <p>Sign in with your staff account to open the live project data.</p>
+    <input id="signEmail" type="email" autocomplete="username" placeholder="Email" aria-label="Staff email" required>
+    <input id="signPass" type="password" autocomplete="current-password" placeholder="Password" aria-label="Staff password" required>
+    <p class="err" id="signErr" role="alert" hidden></p>
+    <button class="btn" id="signBtn" type="submit">Sign in ↗</button>
+    <a class="back" href="https://ptc-premium-website.vercel.app">← Back to website</a>
+  </form>
+
   <form class="gateCard" id="gateForm">
     <span class="bars"><i></i><i></i><i></i></span>
     <h1>Admin data console</h1>
     <p>Parvati Techno Consultants — enter the staff PIN to view the complete project data.</p>
+    <p class="muted small">This PIN screen is used only until a Supabase project is connected.</p>
     <input id="pin" type="password" autocomplete="off" placeholder="PIN" aria-label="Admin PIN" required>
     <p class="err" id="gateErr" role="alert" hidden>Incorrect PIN — try again.</p>
     <button class="btn" type="submit">Unlock ↗</button>
-    <a class="back" href="https://ptc-premium-website.vercel.app">← Back to website</a>
+    <a class="back" href="index.html">← Back to website</a>
   </form>
 </section>
 
@@ -38,6 +51,7 @@
       <span><strong>PTC · Admin data console</strong><small>PARVATI TECHNO CONSULTANTS</small></span>
     </a>
     <div class="barRight">
+      <span class="ghostbtn" id="source" title="Where this page's data came from">…</span>
       <a class="ghostbtn" href="https://ptc-premium-website.vercel.app" target="_blank" rel="noopener">View website ↗</a>
       <button class="ghostbtn" id="logout" type="button">Lock</button>
     </div>
@@ -158,6 +172,7 @@
 </div>
 
 <script src="data.js"></script>
+<script src="supabase.js"></script>
 <script src="admin.js"></script>
 </body>
 </html>

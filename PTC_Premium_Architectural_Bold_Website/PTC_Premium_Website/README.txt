@@ -6,7 +6,11 @@ FILES
   script.js    all website interactivity (plain JavaScript, no dependencies)
   data.js      shared content data: featured projects, the 174-entry project
                index and the photo gallery. Loaded by both the website and the
-               admin console, so editing this one file updates both.
+               admin console, so editing this one file updates both. Also the
+               offline baseline when the database is unreachable.
+  supabase.js  the Supabase data layer: reads the live content from the
+               database in the same shape data.js uses, and provides the staff
+               sign-in used by the admin console. Empty config = data.js only.
   admin.html   admin data console markup (NOT part of this deployment — the
   admin.css    live console now deploys on its own from ../PTC_Premium_Admin,
   admin.js     which holds the copy that is actually served. See .vercelignore.)
@@ -36,6 +40,20 @@ ADMIN DATA CONSOLE (admin.html)
   control. The data ships to the browser, so anyone who can load the page
   can read it (the pages are marked noindex). Before publishing, put the
   console behind server-side authentication or remove it from the build.
+
+DATABASE (SUPABASE)
+  The content can live in a Supabase (Postgres) database instead of the file.
+    - supabase.js holds two values: SUPABASE_URL and SUPABASE_ANON_KEY.
+      Both are public (they ship to the browser) — access is controlled by row
+      level security, not by hiding the key.
+    - With those filled in, the page renders data.js first, then swaps in the
+      database content and re-renders, so the site is never blank and still
+      works if the network or the database is down.
+    - Tables, policies and seed data: ../supabase/schema.sql, seed.sql and
+      setup.sql (regenerate the seed after editing data.js with
+      "node supabase/generate-seed.js").
+    - Read the console's "source" badge, or window.PTC_DB.source in the
+      browser console, to see whether a page is showing live or fallback data.
 
 CONTENT SOURCE
   All text and photographs come from three PTC company profiles:

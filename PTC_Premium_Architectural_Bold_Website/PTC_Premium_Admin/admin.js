@@ -57,6 +57,12 @@
   var gateForm = $('#gateForm');
   var pinInput = $('#pin');
   var gateErr = $('#gateErr');
+  var signForm = $('#signForm');
+  var signEmail = $('#signEmail');
+  var signPass = $('#signPass');
+  var signErr = $('#signErr');
+  var signBtn = $('#signBtn');
+  var sourceBadge = $('#source');
 
   function unlock() {
     gate.hidden = true;
@@ -69,10 +75,60 @@
     try { return sessionStorage.getItem(STORE_KEY) === '1'; } catch (e) { return false; }
   }
 
-  if (unlocked()) {
-    unlock();
+  /* ---------------------------------------------------------
+     Which gate: real staff sign-in once a Supabase project is
+     connected, the PIN screen until then
+     --------------------------------------------------------- */
+  function showSignIn(focus) {
+    if (gateForm) gateForm.hidden = true;
+    if (signForm) signForm.hidden = false;
+    if (focus && signEmail) signEmail.focus();
+  }
+
+  function usePIN() {
+    if (signForm) signForm.hidden = true;
+    if (gateForm) gateForm.hidden = false;
+    if (unlocked()) unlock(); else pinInput.focus();
+  }
+
+  function startGate() {
+    var DB = window.PTC_DB;
+    if (!DB || !DB.configured) { usePIN(); return; }
+    if (DB.signedIn) { unlock(); return; }
+    /* the database is unreachable — keep the console usable offline */
+    if (DB.error) { usePIN(); return; }
+    showSignIn(true);
+  }
+
+  if (window.PTC_DB && PTC_DB.configured) {
+    showSignIn(false);
+    /* supabase.js restores any stored staff session, reads the content,
+       then announces it — that is when we know which gate to show */
+    window.addEventListener('ptc:content', startGate);
+    if (PTC_DB.ready) startGate();
   } else {
-    pinInput.focus();
+    startGate();
+  }
+
+  if (signForm) {
+    signForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      var email = signEmail.value.trim();
+      var password = signPass.value;
+      if (!email || !password) return;
+      signErr.hidden = true;
+      if (signBtn) { signBtn.disabled = true; signBtn.textContent = 'Signing in…'; }
+      PTC_DB.signIn(email, password).then(function () {
+        unlock();
+      }).catch(function (err) {
+        signErr.textContent = (err && err.message) ? err.message : 'Sign-in failed — please try again.';
+        signErr.hidden = false;
+        signPass.value = '';
+        signPass.focus();
+      }).then(function () {
+        if (signBtn) { signBtn.disabled = false; signBtn.textContent = 'Sign in ↗'; }
+      });
+    });
   }
 
   gateForm.addEventListener('submit', function (e) {
@@ -96,9 +152,41 @@
 
   function lock() {
     try { sessionStorage.removeItem(STORE_KEY); } catch (e) { /* ignore */ }
-    window.location.reload();
+    var out = (window.PTC_DB && PTC_DB.configured && PTC_DB.signedIn)
+      ? PTC_DB.signOut()
+      : Promise.resolve();
+    out.then(function () { window.location.reload(); });
   }
   $('#logout').addEventListener('click', lock);
+
+  /* ---------------------------------------------------------
+     Live content — swap the data.js baseline for what the database
+     holds, and show where the numbers on screen came from
+     --------------------------------------------------------- */
+  function applyContent() {
+    projects = window.PTC.projects || projects;
+    indexEntries = window.PTC.indexEntries || indexEntries;
+    gallery = window.PTC.gallery || gallery;
+
+    if (booted) {
+      renderStats();
+      renderOverview();
+      renderFeatured();
+      renderIndex();
+      renderGallery();
+    }
+
+    if (sourceBadge) {
+      var DB = window.PTC_DB;
+      if (!DB || !DB.configured) sourceBadge.textContent = 'Local data.js';
+      else if (DB.source === 'supabase') sourceBadge.textContent = 'Live · Supabase';
+      else sourceBadge.textContent = 'Supabase offline · data.js';
+      sourceBadge.title = DB && DB.error ? DB.error.message : 'Content source';
+    }
+  }
+
+  window.addEventListener('ptc:content', applyContent);
+  applyContent();
 
   function boot() {
     if (booted) return;

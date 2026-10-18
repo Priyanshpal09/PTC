@@ -698,8 +698,8 @@
   /* ---------------------------------------------------------
      Live content — supabase.js calls this once the database has
      answered, so the page moves from the data.js baseline to the
-     live content without a reload. Repeating a search or filter
-     the visitor already applied is harmless: the state is kept.
+     live content without a reload. Whatever search or filter the
+     visitor has already applied is kept — nothing they typed is lost.
      --------------------------------------------------------- */
   window.PTC_UI = {
     refresh: function () {
