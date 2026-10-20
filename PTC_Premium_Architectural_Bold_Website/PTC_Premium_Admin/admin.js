@@ -188,6 +188,11 @@
   function boot() {
     if (booted) return;
     booted = true;
+    wireAddDeleteActions();
+
+    
+    if (booted) return;
+    booted = true;
 
     renderStats();
     renderOverview();
@@ -563,6 +568,7 @@
         '<td><span class="tag ' + esc(p[0]) + '">' + esc(categoryLabel[p[0]] || p[0]) + '</span></td>' +
         '<td class="loc">' + esc(p[2]) + '</td>' +
         '<td class="detail">' + (p[4] ? esc(p[4]) : '<span class="file">—</span>') + '</td>' +
+        '<td style="width:1%"><button class="chip" type="button" data-delete-project="' + p[0] + '-' + (p[1] ? p[1].substring(0,8) + '…' : '—') + '">Delete</button></td>' +
         '</tr>';
     }).join('') || '<tr><td colspan="5" class="muted empty">No projects match that search.</td></tr>';
   }
@@ -617,6 +623,7 @@
         '<td class="proj">' + esc(g[1]) + '</td>' +
         '<td><span class="tag">' + esc(g[2]) + '</span></td>' +
         '<td class="file">' + esc(g[0]) + '</td>' +
+        '<td style="width:1%"><button class="chip" type="button" data-delete-gallery="' + g[0] + '">Delete</button></td>' +
         '</tr>';
     }).join('') || '<tr><td colspan="4" class="muted empty">No photographs match that search.</td></tr>';
   }
@@ -806,6 +813,11 @@
      Bootstrap wire-up
      ============================================================ */
   function boot() {
+    if (booted) return;
+    booted = true;
+    wireAddDeleteActions();
+
+    
     if (booted) return;
     booted = true;
 
