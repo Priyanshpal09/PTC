@@ -268,6 +268,16 @@
       '&order=created_at.desc');
   };
 
+  DB.updateEnquiryStatus = function (id, status) {
+    if (!DB.configured) return Promise.reject(new Error('Supabase is not configured yet.'));
+    var url = baseURL() + '/rest/v1/enquiries?id=eq.' + encodeURIComponent(id);
+    return request(url, {
+      method: 'PATCH',
+      headers: headers({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }),
+      body: JSON.stringify({ status: status })
+    }, 'Updating enquiry');
+  };
+
   DB.signIn = signIn;
   DB.signOut = signOut;
   DB.restoreSession = restoreSession;

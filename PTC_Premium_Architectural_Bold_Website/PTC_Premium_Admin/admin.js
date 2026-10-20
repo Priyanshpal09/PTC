@@ -194,8 +194,10 @@
     renderFeatured();
     renderIndex();
     renderGallery();
+    renderEnquirySummary();
     renderEnquiries();
     renderInsights();
+    wireEnquiryActions();
     wireTabs();
     wireSearch();
     wireFilters();
@@ -219,10 +221,43 @@
     return out;
   }
 
-  function enquiryCounts() {
-    var set = {};
-    // Could count by status, but we just return the total count from the UI
-    return 0; // placeholder - actual count rendered from admin table
+  /* Enquiry totals — updated whenever the enquiries table loads */
+  var enquiryStats = { received: 0, done: 0, fresh: 0, read: 0, replied: 0, archived: 0 };
+
+  function setEnquiryStats(list) {
+    var s = { received: 0, done: 0, fresh: 0, read: 0, replied: 0, archived: 0 };
+    (list || []).forEach(function (e) {
+      s.received++;
+      var st = String(e.status || 'new');
+      if (st === 'new') s.fresh++;
+      else if (st === 'read') s.read++;
+      else if (st === 'replied') s.replied++;
+      else if (st === 'archived') s.archived++;
+      if (st === 'replied' || st === 'archived') s.done++;
+    });
+    enquiryStats = s;
+    return s;
+  }
+
+  function renderEnquirySummary() {
+    var el = $('#enquirySummary');
+    if (!el) return;
+    var cards = [
+      ['Emails received', enquiryStats.received],
+      ['Emails done', enquiryStats.done],
+      ['New', enquiryStats.fresh],
+      ['Read', enquiryStats.read],
+      ['Replied', enquiryStats.replied],
+      ['Archived', enquiryStats.archived]
+    ];
+    el.innerHTML = cards.map(function (it) {
+      return '<div class="stat"><b>' + fmt(it[1]) + '</b><span>' + it[0] + '</span></div>';
+    }).join('');
+    var countEl = $('#enquiriesCount');
+    if (countEl) {
+      countEl.textContent = fmt(enquiryStats.received) + ' received · ' +
+        fmt(enquiryStats.done) + ' done';
+    }
   }
 
   function renderStats() {
@@ -232,14 +267,13 @@
       ['Project index entries', fmt(indexEntries.length)],
       ['Photographs', fmt(gallery.length)],
       ['Locations on record', fmt(uniqueLocations())],
-      ['Categories', fmt(Object.keys(cats).length)]
+      ['Categories', fmt(Object.keys(cats).length)],
+      ['Emails received', fmt(enquiryStats.received)],
+      ['Emails done', fmt(enquiryStats.done)]
     ];
     $('#stats').innerHTML = items.map(function (it) {
       return '<div class="stat"><b>' + it[1] + '</b><span>' + it[0] + '</span></div>';
     }).join('');
-
-    /* Enquiries count */
-    $('#enquiriesCount').textContent = fmt(enquiryCounts()) + ' enquiries';
   }
 
   /* ============================================================
@@ -303,42 +337,57 @@
     var DB = window.PTC_DB;
     var table = $('#enquiriesTable');
     if (!DB || !DB.configured || typeof DB.listEnquiries !== 'function') {
-      if (table) table.innerHTML = '<tr><td colspan="5" class="muted empty">Connect Supabase and run supabase/schema.sql to store enquiries</td></tr>';
-      $('#enquiriesCount').textContent = '0 enquiries';
+      if (table) table.innerHTML = '<tr><td colspan="6" class="muted empty">Connect Supabase and run supabase/schema.sql to store enquiries</td></tr>';
+      setEnquiryStats([]); renderEnquirySummary();
       return;
     }
 
     DB.listEnquiries().then(function (enquiries) {
-      if (!enquiries || enquiries.length === 0) {
-        table.innerHTML = '<tr><td colspan="5" class="muted">No enquiries yet</td></tr>';
-        $('#enquiriesCount').textContent = '0 enquiries';
+      enquiries = enquiries || [];
+      /* totals always reflect the whole inbox, not the current filter */
+      setEnquiryStats(enquiries); renderEnquirySummary(); renderStats();
+
+      if (enquiries.length === 0) {
+        table.innerHTML = '<tr><td colspan="6" class="muted">No enquiries yet</td></tr>';
         return;
       }
 
-      var rows = enquiries.map(function (e) {
+      var q = String(state.q.enquiries || '').toLowerCase();
+      var cat = state.cat.enquiries || 'all';
+      var rows = enquiries.filter(function (e) {
+        var st = String(e.status || 'new');
+        if (cat !== 'all' && st !== cat) return false;
+        if (!q) return true;
+        return (String(e.name || '') + ' ' + String(e.email || '') + ' ' +
+          String(e.company || '') + ' ' + String(e.message || '')).toLowerCase().indexOf(q) > -1;
+      }).map(function (e) {
         var status = esc(e.status || 'new');
+        var done = (status === 'replied' || status === 'archived');
+        var action = done
+          ? '<span class="muted">✓ done</span>'
+          : '<button class="chip" type="button" data-done="' + esc(e.id) + '">Mark done</button>';
         return '<tr>' +
           '<td>' + esc(e.id ? e.id.substring(0, 8) + '…' : '—') + '</td>' +
           '<td>' + esc(e.name || '—') + '</td>' +
           '<td>' + esc(e.email || '—') + '</td>' +
           '<td>' + esc(e.company || '—') + '</td>' +
           '<td><span class="status-' + status + '">' + status + '</span></td>' +
+          '<td>' + action + '</td>' +
           '</tr>';
       }).join('');
 
       table.innerHTML = '<tr>' +
-        '<th>ID</th><th>Name</th><th>Email</th><th>Company</th><th>Status</th>' +
-        '</tr>' + rows;
-      $('#enquiriesCount').textContent = enquiries.length + ' enquiries';
+        '<th>ID</th><th>Name</th><th>Email</th><th>Company</th><th>Status</th><th>Action</th>' +
+        '</tr>' + (rows || '<tr><td colspan="6" class="muted empty">No enquiries match that search.</td></tr>');
     }).catch(function (err) {
       if (window.console && console.warn) console.warn('[PTC] Could not load enquiries:', err.message);
       var missing = /404|does not exist|relation/i.test(String(err && err.message));
-      table.innerHTML = '<tr><td colspan="5" class="muted error">' +
+      table.innerHTML = '<tr><td colspan="6" class="muted error">' +
         (missing
           ? 'Enquiries table not created yet — run supabase/enquiries-insights.sql in Supabase.'
           : 'Error loading enquiries') +
         '</td></tr>';
-      $('#enquiriesCount').textContent = '0 enquiries';
+      setEnquiryStats([]); renderEnquirySummary();
     });
   }
 
@@ -383,6 +432,30 @@
   }
 
   /* ============================================================
+     Enquiry actions — mark an enquiry as done (replied)
+     ============================================================ */
+  function wireEnquiryActions() {
+    var table = $('#enquiriesTable');
+    if (!table) return;
+    table.addEventListener('click', function (ev) {
+      var btn = ev.target.closest ? ev.target.closest('[data-done]') : null;
+      if (!btn) return;
+      var id = btn.getAttribute('data-done');
+      var DB = window.PTC_DB;
+      if (!id || !DB || typeof DB.updateEnquiryStatus !== 'function') return;
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+      DB.updateEnquiryStatus(id, 'replied').then(function () {
+        renderEnquiries();
+      }).catch(function (err) {
+        if (window.console && console.warn) console.warn('[PTC] Could not update enquiry:', err.message);
+        btn.disabled = false;
+        btn.textContent = 'Mark done';
+      });
+    });
+  }
+
+  /* ============================================================
      Tabs
      ============================================================ */
   function wireTabs() {
@@ -416,7 +489,7 @@
      Search
      ============================================================ */
   function wireSearch() {
-    ['featured', 'index', 'gallery'].forEach(function (name) {
+    ['featured', 'index', 'gallery', 'enquiries'].forEach(function (name) {
       var input = $('#q-' + name);
       if (!input) return;
       input.addEventListener('input', function () {
@@ -552,6 +625,7 @@
     if (name === 'featured') renderFeatured();
     else if (name === 'index') renderIndex();
     else if (name === 'gallery') renderGallery();
+    else if (name === 'enquiries') renderEnquiries();
   }
 
   /* ============================================================

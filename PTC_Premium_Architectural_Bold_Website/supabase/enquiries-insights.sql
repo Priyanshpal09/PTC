@@ -19,8 +19,8 @@ create table if not exists public.enquiries (
 alter table public.enquiries enable row level security;
 
 grant usage on schema public to anon, authenticated;
-grant insert, select on public.enquiries to anon, authenticated;
-grant update, delete on public.enquiries to authenticated;
+grant insert, select, update on public.enquiries to anon, authenticated;
+grant delete on public.enquiries to authenticated;
 
 drop policy if exists enquiries_public_insert on public.enquiries;
 create policy enquiries_public_insert on public.enquiries
@@ -32,7 +32,7 @@ create policy enquiries_staff_read on public.enquiries
 
 drop policy if exists enquiries_staff_write on public.enquiries;
 create policy enquiries_staff_write on public.enquiries
-  for update to authenticated using (true) with check (true);
+  for update to anon, authenticated using (true) with check (true);
 
 drop policy if exists enquiries_staff_delete on public.enquiries;
 create policy enquiries_staff_delete on public.enquiries
