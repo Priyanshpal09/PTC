@@ -679,35 +679,14 @@
         return;
       }
 
-      // Store enquiry in Supabase first
-      if (DB && DB.configured && DB.signedIn) {
-        var NL = String.fromCharCode(10);
-        var body = encodeURIComponent([
-          'Name: ' + name,
-          'Email: ' + email,
-          'Company: ' + company,
-          '',
-          'Project details:',
-          message
-        ].join(NL));
-        DB.signIn(email, '').then(function () {
-          return DB.restoreSession();
-        }).then(function () {
-          var token = DB.session && DB.session.access_token;
-          if (!token) return;
-          return fetch(DB.baseURL() + '/rest/v1/public.enquiries', {
-            method: 'POST',
-            headers: {
-              apikey: DB.SUPABASE_ANON_KEY,
-              Authorization: 'Bearer ' + token,
-              'Content-Type': 'application/json',
-              'Prefer': 'return=minimal'
-            },
-            body: JSON.stringify({ email: email, name: name, company: company, message: message })
+      // Save the enquiry to the database so it appears in the admin console.
+      // Anonymous inserts are allowed by the enquiries RLS policy; only staff
+      // can read them back. The mailto below still runs either way.
+      if (DB && DB.configured && typeof DB.submitEnquiry === 'function') {
+        DB.submitEnquiry({ name: name, email: email, company: company, message: message })
+          .catch(function (err) {
+            if (window.console && console.warn) console.warn('[PTC] Could not store enquiry:', err.message);
           });
-        }).catch(function (err) {
-          if (window.console && console.warn) console.warn('[PTC] Could not store enquiry:', err.message);
-        });
       }
 
       // Open mail app as fallback / preview

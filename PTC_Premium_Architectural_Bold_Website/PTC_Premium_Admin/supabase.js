@@ -233,6 +233,41 @@
     });
   }
 
+  /* ---------------------------------------------------------
+     Enquiries + insights (admin console)
+     --------------------------------------------------------- */
+  function restGet(table, query) {
+    var url = baseURL() + '/rest/v1/' + table + (query ? '?' + query : '');
+    return request(url, { headers: headers() }, 'Reading ' + table);
+  }
+
+  function submitEnquiry(payload) {
+    if (!DB.configured) return Promise.reject(new Error('Supabase is not configured yet.'));
+    var url = baseURL() + '/rest/v1/enquiries';
+    return request(url, {
+      method: 'POST',
+      headers: headers({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }),
+      body: JSON.stringify({
+        name: text(payload.name),
+        email: text(payload.email),
+        company: text(payload.company),
+        message: text(payload.message)
+      })
+    }, 'Sending enquiry');
+  }
+
+  DB.submitEnquiry = submitEnquiry;
+  DB.listEnquiries = function () {
+    return restGet('enquiries', 'select=' +
+      encodeURIComponent('id,name,email,company,message,status,created_at') +
+      '&order=created_at.desc');
+  };
+  DB.listInsights = function () {
+    return restGet('insights', 'select=' +
+      encodeURIComponent('id,metric,value,category,created_at') +
+      '&order=created_at.desc');
+  };
+
   DB.signIn = signIn;
   DB.signOut = signOut;
   DB.restoreSession = restoreSession;

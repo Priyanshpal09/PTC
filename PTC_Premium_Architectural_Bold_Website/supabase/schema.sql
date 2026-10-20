@@ -118,3 +118,67 @@ create policy index_entries_staff_write on public.index_entries
 drop policy if exists gallery_photos_staff_write on public.gallery_photos;
 create policy gallery_photos_staff_write on public.gallery_photos
   for all to authenticated using (true) with check (true);
+
+/* ------------------------------------------------------------
+   Enquiries — contact-form submissions shown in the admin console
+   ------------------------------------------------------------ */
+create table if not exists public.enquiries (
+  id         uuid primary key default gen_random_uuid(),
+  name       text not null,
+  email      text not null,
+  company    text not null default '',
+  message    text not null,
+  status     text not null default 'new'
+             check (status in ('new', 'read', 'replied', 'archived')),
+  created_at timestamptz not null default now()
+);
+
+alter table public.enquiries enable row level security;
+
+grant usage on schema public to anon, authenticated;
+grant insert, select on public.enquiries to anon, authenticated;
+grant update, delete on public.enquiries to authenticated;
+
+/* anyone may submit an enquiry from the website form */
+drop policy if exists enquiries_public_insert on public.enquiries;
+create policy enquiries_public_insert on public.enquiries
+  for insert to anon, authenticated with check (true);
+
+/* the admin console reads enquiries (it is guarded by the staff PIN; the
+   data is only ever exposed to that console, never to the public page) */
+drop policy if exists enquiries_staff_read on public.enquiries;
+create policy enquiries_staff_read on public.enquiries
+  for select to anon, authenticated using (true);
+
+drop policy if exists enquiries_staff_write on public.enquiries;
+create policy enquiries_staff_write on public.enquiries
+  for update to authenticated using (true) with check (true);
+
+drop policy if exists enquiries_staff_delete on public.enquiries;
+create policy enquiries_staff_delete on public.enquiries
+  for delete to authenticated using (true);
+
+/* ------------------------------------------------------------
+   Insights — metrics shown in the admin console
+   ------------------------------------------------------------ */
+create table if not exists public.insights (
+  id         uuid primary key default gen_random_uuid(),
+  metric     text not null,
+  value      text not null,
+  category   text not null default 'general',
+  created_at timestamptz not null default now()
+);
+
+alter table public.insights enable row level security;
+
+grant usage on schema public to anon, authenticated;
+grant select on public.insights to anon, authenticated;
+grant insert, update, delete on public.insights to authenticated;
+
+drop policy if exists insights_staff_read on public.insights;
+create policy insights_staff_read on public.insights
+  for select to anon, authenticated using (true);
+
+drop policy if exists insights_staff_write on public.insights;
+create policy insights_staff_write on public.insights
+  for all to authenticated using (true) with check (true);

@@ -93,22 +93,19 @@
 
   function startGate() {
     var DB = window.PTC_DB;
-    if (!DB || !DB.configured) { usePIN(); return; }
-    if (DB.signedIn) { unlock(); return; }
-    /* the database is unreachable — keep the console usable offline */
-    if (DB.error) { usePIN(); return; }
-    showSignIn(true);
+    /* already signed in with a staff account → straight in */
+    if (DB && DB.configured && DB.signedIn) { unlock(); return; }
+    /* everyone else reaches the console with the staff PIN, so the console is
+       never locked behind an account that may not exist yet. Signed-in staff
+       still get live Supabase data; PIN access uses the bundled data.js. */
+    usePIN();
   }
 
-  if (window.PTC_DB && PTC_DB.configured) {
-    showSignIn(false);
-    /* supabase.js restores any stored staff session, reads the content,
-       then announces it — that is when we know which gate to show */
-    window.addEventListener('ptc:content', startGate);
-    if (PTC_DB.ready) startGate();
-  } else {
-    startGate();
-  }
+  /* Always show the PIN gate first. supabase.js restores any stored staff
+     session and announces content, so re-evaluate the gate when that lands. */
+  window.addEventListener('ptc:content', startGate);
+  if (window.PTC_DB && PTC_DB.ready) startGate();
+  else setTimeout(startGate, 0);
 
   if (signForm) {
     signForm.addEventListener('submit', function (e) {
@@ -304,63 +301,38 @@
      ============================================================ */
   function renderEnquiries() {
     var DB = window.PTC_DB;
-    if (!DB || !DB.configured || !DB.signedIn) {
-      $('#enquiriesTable').innerHTML = '<tr><td colspan="5" class="muted empty">Sign in to view enquiries</td></tr>';
+    var table = $('#enquiriesTable');
+    if (!DB || !DB.configured || typeof DB.listEnquiries !== 'function') {
+      if (table) table.innerHTML = '<tr><td colspan="5" class="muted empty">Connect Supabase and run supabase/schema.sql to store enquiries</td></tr>';
       $('#enquiriesCount').textContent = '0 enquiries';
       return;
     }
 
-    var url = DB.baseURL() + '/rest/v1/public.enquiries';
-    var token = DB.session && DB.session.access_token;
-    if (!token) {
-      $('#enquiriesTable').innerHTML = '<tr><td colspan="5" class="muted empty">Sign in to view enquiries</td></tr>';
-      $('#enquiriesCount').textContent = '0 enquiries';
-      return;
-    }
-
-    fetch(url, {
-      method: 'GET',
-      headers: {
-        apikey: DB.SUPABASE_ANON_KEY,
-        Authorization: 'Bearer ' + token,
-      }
-    }).then(function (res) {
-      return res.json();
-    }).then(function (enquiries) {
+    DB.listEnquiries().then(function (enquiries) {
       if (!enquiries || enquiries.length === 0) {
-        $('#enquiriesTable').innerHTML = '<tr><td colspan="5" class="muted">No enquiries yet</td></tr>';
+        table.innerHTML = '<tr><td colspan="5" class="muted">No enquiries yet</td></tr>';
         $('#enquiriesCount').textContent = '0 enquiries';
         return;
       }
 
-      // Sort by created_at descending
-      enquiries.sort(function (a, b) {
-        return new Date(b.created_at) - new Date(a.created_at);
-      });
-
       var rows = enquiries.map(function (e) {
-        var statusClass = 'status-' + (e.status || 'new');
-        var statusText = e.status || 'new';
+        var status = esc(e.status || 'new');
         return '<tr>' +
-          '<td>' + (e.id ? e.id.substring(0, 8) + '...' : '') + '</td>' +
-          '<td>' + (e.name || '—') + '</td>' +
-          '<td>' + (e.email || '—') + '</td>' +
-          '<td>' + (e.company || '—') + '</td>' +
-          '<td>' + '<span class="' + statusClass + '">' + statusText + '</span>' + '</td>' +
+          '<td>' + esc(e.id ? e.id.substring(0, 8) + '…' : '—') + '</td>' +
+          '<td>' + esc(e.name || '—') + '</td>' +
+          '<td>' + esc(e.email || '—') + '</td>' +
+          '<td>' + esc(e.company || '—') + '</td>' +
+          '<td><span class="status-' + status + '">' + status + '</span></td>' +
           '</tr>';
       }).join('');
 
-      $('#enquiriesTable').innerHTML = '<tr>' +
-        '<th>ID</th>' +
-        '<th>Name</th>' +
-        '<th>Email</th>' +
-        '<th>Company</th>' +
-        '<th>Status</th>' +
+      table.innerHTML = '<tr>' +
+        '<th>ID</th><th>Name</th><th>Email</th><th>Company</th><th>Status</th>' +
         '</tr>' + rows;
       $('#enquiriesCount').textContent = enquiries.length + ' enquiries';
     }).catch(function (err) {
       if (window.console && console.warn) console.warn('[PTC] Could not load enquiries:', err.message);
-      $('#enquiriesTable').innerHTML = '<tr><td colspan="5" class="muted error">Error loading enquiries</td></tr>';
+      table.innerHTML = '<tr><td colspan="5" class="muted error">Error loading enquiries</td></tr>';
       $('#enquiriesCount').textContent = '0 enquiries';
     });
   }
@@ -370,50 +342,33 @@
      ============================================================ */
   function renderInsights() {
     var DB = window.PTC_DB;
-    if (!DB || !DB.configured || !DB.signedIn) {
-      $('#insightsTable').innerHTML = '<tr><td colspan="4" class="muted empty">Sign in to view insights</td></tr>';
+    var table = $('#insightsTable');
+    if (!DB || !DB.configured || typeof DB.listInsights !== 'function') {
+      if (table) table.innerHTML = '<tr><td colspan="4" class="muted empty">Connect Supabase and run supabase/schema.sql to store insights</td></tr>';
       return;
     }
 
-    var url = DB.baseURL() + '/rest/v1/public.insights';
-    var token = DB.session && DB.session.access_token;
-    if (!token) {
-      $('#insightsTable').innerHTML = '<tr><td colspan="4" class="muted empty">Sign in to view insights</td></tr>';
-      return;
-    }
-
-    fetch(url, {
-      method: 'GET',
-      headers: {
-        apikey: DB.SUPABASE_ANON_KEY,
-        Authorization: 'Bearer ' + token,
-      }
-    }).then(function (res) {
-      return res.json();
-    }).then(function (insights) {
+    DB.listInsights().then(function (insights) {
       if (!insights || insights.length === 0) {
-        $('#insightsTable').innerHTML = '<tr><td colspan="4" class="muted">No insights yet</td></tr>';
+        table.innerHTML = '<tr><td colspan="4" class="muted">No insights yet</td></tr>';
         return;
       }
 
       var rows = insights.map(function (i) {
         return '<tr>' +
-          '<td>' + (i.metric || '—') + '</td>' +
-          '<td>' + (i.value || '—') + '</td>' +
-          '<td>' + (i.category || 'general') + '</td>' +
+          '<td>' + esc(i.metric || '—') + '</td>' +
+          '<td>' + esc(i.value || '—') + '</td>' +
+          '<td>' + esc(i.category || 'general') + '</td>' +
           '<td>' + (i.created_at ? new Date(i.created_at).toLocaleDateString() : '—') + '</td>' +
           '</tr>';
       }).join('');
 
-      $('#insightsTable').innerHTML = '<tr>' +
-        '<th>Metric</th>' +
-        '<td>Value</th>' +
-        '<th>Category</th>' +
-        '<th>Date</th>' +
+      table.innerHTML = '<tr>' +
+        '<th>Metric</th><th>Value</th><th>Category</th><th>Date</th>' +
         '</tr>' + rows;
     }).catch(function (err) {
       if (window.console && console.warn) console.warn('[PTC] Could not load insights:', err.message);
-      $('#insightsTable').innerHTML = '<tr><td colspan="4" class="muted error">Error loading insights</td></tr>';
+      table.innerHTML = '<tr><td colspan="4" class="muted error">Error loading insights</td></tr>';
     });
   }
 

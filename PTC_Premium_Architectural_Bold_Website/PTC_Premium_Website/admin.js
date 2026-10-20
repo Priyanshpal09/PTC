@@ -93,22 +93,19 @@
 
   function startGate() {
     var DB = window.PTC_DB;
-    if (!DB || !DB.configured) { usePIN(); return; }
-    if (DB.signedIn) { unlock(); return; }
-    /* the database is unreachable — keep the console usable offline */
-    if (DB.error) { usePIN(); return; }
-    showSignIn(true);
+    /* already signed in with a staff account → straight in */
+    if (DB && DB.configured && DB.signedIn) { unlock(); return; }
+    /* everyone else reaches the console with the staff PIN, so the console is
+       never locked behind an account that may not exist yet. Signed-in staff
+       still get live Supabase data; PIN access uses the bundled data.js. */
+    usePIN();
   }
 
-  if (window.PTC_DB && PTC_DB.configured) {
-    showSignIn(false);
-    /* supabase.js restores any stored staff session, reads the content,
-       then announces it — that is when we know which gate to show */
-    window.addEventListener('ptc:content', startGate);
-    if (PTC_DB.ready) startGate();
-  } else {
-    startGate();
-  }
+  /* Always show the PIN gate first. supabase.js restores any stored staff
+     session and announces content, so re-evaluate the gate when that lands. */
+  window.addEventListener('ptc:content', startGate);
+  if (window.PTC_DB && PTC_DB.ready) startGate();
+  else setTimeout(startGate, 0);
 
   if (signForm) {
     signForm.addEventListener('submit', function (e) {
@@ -197,6 +194,8 @@
     renderFeatured();
     renderIndex();
     renderGallery();
+    renderEnquiries();
+    renderInsights();
     wireTabs();
     wireSearch();
     wireFilters();
@@ -220,6 +219,12 @@
     return out;
   }
 
+  function enquiryCounts() {
+    var set = {};
+    // Could count by status, but we just return the total count from the UI
+    return 0; // placeholder - actual count rendered from admin table
+  }
+
   function renderStats() {
     var cats = categoryCounts();
     var items = [
@@ -232,6 +237,9 @@
     $('#stats').innerHTML = items.map(function (it) {
       return '<div class="stat"><b>' + it[1] + '</b><span>' + it[0] + '</span></div>';
     }).join('');
+
+    /* Enquiries count */
+    $('#enquiriesCount').textContent = fmt(enquiryCounts()) + ' enquiries';
   }
 
   /* ============================================================
@@ -289,6 +297,82 @@
   }
 
   /* ============================================================
+     Enquiries table
+     ============================================================ */
+  function renderEnquiries() {
+    var DB = window.PTC_DB;
+    var table = $('#enquiriesTable');
+    if (!DB || !DB.configured || typeof DB.listEnquiries !== 'function') {
+      if (table) table.innerHTML = '<tr><td colspan="5" class="muted empty">Connect Supabase and run supabase/schema.sql to store enquiries</td></tr>';
+      $('#enquiriesCount').textContent = '0 enquiries';
+      return;
+    }
+
+    DB.listEnquiries().then(function (enquiries) {
+      if (!enquiries || enquiries.length === 0) {
+        table.innerHTML = '<tr><td colspan="5" class="muted">No enquiries yet</td></tr>';
+        $('#enquiriesCount').textContent = '0 enquiries';
+        return;
+      }
+
+      var rows = enquiries.map(function (e) {
+        var status = esc(e.status || 'new');
+        return '<tr>' +
+          '<td>' + esc(e.id ? e.id.substring(0, 8) + '…' : '—') + '</td>' +
+          '<td>' + esc(e.name || '—') + '</td>' +
+          '<td>' + esc(e.email || '—') + '</td>' +
+          '<td>' + esc(e.company || '—') + '</td>' +
+          '<td><span class="status-' + status + '">' + status + '</span></td>' +
+          '</tr>';
+      }).join('');
+
+      table.innerHTML = '<tr>' +
+        '<th>ID</th><th>Name</th><th>Email</th><th>Company</th><th>Status</th>' +
+        '</tr>' + rows;
+      $('#enquiriesCount').textContent = enquiries.length + ' enquiries';
+    }).catch(function (err) {
+      if (window.console && console.warn) console.warn('[PTC] Could not load enquiries:', err.message);
+      table.innerHTML = '<tr><td colspan="5" class="muted error">Error loading enquiries</td></tr>';
+      $('#enquiriesCount').textContent = '0 enquiries';
+    });
+  }
+
+  /* ============================================================
+     Insights table
+     ============================================================ */
+  function renderInsights() {
+    var DB = window.PTC_DB;
+    var table = $('#insightsTable');
+    if (!DB || !DB.configured || typeof DB.listInsights !== 'function') {
+      if (table) table.innerHTML = '<tr><td colspan="4" class="muted empty">Connect Supabase and run supabase/schema.sql to store insights</td></tr>';
+      return;
+    }
+
+    DB.listInsights().then(function (insights) {
+      if (!insights || insights.length === 0) {
+        table.innerHTML = '<tr><td colspan="4" class="muted">No insights yet</td></tr>';
+        return;
+      }
+
+      var rows = insights.map(function (i) {
+        return '<tr>' +
+          '<td>' + esc(i.metric || '—') + '</td>' +
+          '<td>' + esc(i.value || '—') + '</td>' +
+          '<td>' + esc(i.category || 'general') + '</td>' +
+          '<td>' + (i.created_at ? new Date(i.created_at).toLocaleDateString() : '—') + '</td>' +
+          '</tr>';
+      }).join('');
+
+      table.innerHTML = '<tr>' +
+        '<th>Metric</th><th>Value</th><th>Category</th><th>Date</th>' +
+        '</tr>' + rows;
+    }).catch(function (err) {
+      if (window.console && console.warn) console.warn('[PTC] Could not load insights:', err.message);
+      table.innerHTML = '<tr><td colspan="4" class="muted error">Error loading insights</td></tr>';
+    });
+  }
+
+  /* ============================================================
      Tabs
      ============================================================ */
   function wireTabs() {
@@ -301,7 +385,7 @@
           b.classList.toggle('active', on);
           b.setAttribute('aria-selected', on ? 'true' : 'false');
         });
-        ['overview', 'featured', 'index', 'gallery'].forEach(function (name) {
+        ['overview', 'featured', 'index', 'gallery', 'enquiries', 'insights'].forEach(function (name) {
           var panel = $('#panel-' + name);
           if (panel) panel.hidden = name !== tab;
         });
