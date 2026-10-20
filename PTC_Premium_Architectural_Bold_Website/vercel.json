@@ -4,6 +4,18 @@
   "outputDirectory": "PTC_Premium_Website",
   "cleanUrls": true,
   "trailingSlash": false,
+  "rewrites": [
+    {
+      "source": "/",
+      "has": [{ "type": "host", "value": "ptc-premium-admin.vercel.app" }],
+      "destination": "/admin.html"
+    },
+    {
+      "source": "/admin",
+      "has": [{ "type": "host", "value": "ptc-premium-admin.vercel.app" }],
+      "destination": "/admin.html"
+    }
+  ],
   "headers": [
     {
       "source": "/assets/(.*)",
