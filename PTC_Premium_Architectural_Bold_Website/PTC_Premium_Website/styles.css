@@ -560,8 +560,9 @@ section[id]{scroll-margin-top:86px}
    Featured projects
    ============================================================ */
 .projects{
-  display:grid;grid-template-columns:repeat(3,1fr);gap:22px;
+  display:grid;grid-template-columns:repeat(3,1fr);gap:24px;
   transition:opacity .24s var(--ease),transform .24s var(--ease);
+  place-items:stretch;
 }
 .projects.swapping{opacity:0;transform:translateY(10px)}
 .project{
@@ -618,8 +619,9 @@ section[id]{scroll-margin-top:86px}
    Gallery
    ============================================================ */
 .galleryGrid{
-  display:grid;grid-template-columns:repeat(4,1fr);gap:14px;
+  display:grid;grid-template-columns:repeat(4,1fr);gap:16px;
   transition:opacity .24s var(--ease),transform .24s var(--ease);
+  place-items:stretch;
 }
 .galleryGrid.swapping{opacity:0;transform:translateY(8px)}
 .gTile{
