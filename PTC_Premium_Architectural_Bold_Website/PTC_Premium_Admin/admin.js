@@ -332,7 +332,12 @@
       $('#enquiriesCount').textContent = enquiries.length + ' enquiries';
     }).catch(function (err) {
       if (window.console && console.warn) console.warn('[PTC] Could not load enquiries:', err.message);
-      table.innerHTML = '<tr><td colspan="5" class="muted error">Error loading enquiries</td></tr>';
+      var missing = /404|does not exist|relation/i.test(String(err && err.message));
+      table.innerHTML = '<tr><td colspan="5" class="muted error">' +
+        (missing
+          ? 'Enquiries table not created yet — run supabase/enquiries-insights.sql in Supabase.'
+          : 'Error loading enquiries') +
+        '</td></tr>';
       $('#enquiriesCount').textContent = '0 enquiries';
     });
   }
@@ -368,7 +373,12 @@
         '</tr>' + rows;
     }).catch(function (err) {
       if (window.console && console.warn) console.warn('[PTC] Could not load insights:', err.message);
-      table.innerHTML = '<tr><td colspan="4" class="muted error">Error loading insights</td></tr>';
+      var missing = /404|does not exist|relation/i.test(String(err && err.message));
+      table.innerHTML = '<tr><td colspan="4" class="muted error">' +
+        (missing
+          ? 'Insights table not created yet — run supabase/enquiries-insights.sql in Supabase.'
+          : 'Error loading insights') +
+        '</td></tr>';
     });
   }
 
