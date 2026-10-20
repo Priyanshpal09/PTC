@@ -638,11 +638,12 @@
   });
 
   /* ---------------------------------------------------------
-     Contact form — opens the visitor's mail application
+     Contact form — stores enquiry in Supabase and opens mail app
      --------------------------------------------------------- */
   var form = $('#contactForm');
   if (form) {
     var status = $('#formStatus');
+    var DB = window.PTC_DB;
 
     function setStatus(message, isError) {
       if (!status) return;
@@ -678,6 +679,38 @@
         return;
       }
 
+      // Store enquiry in Supabase first
+      if (DB && DB.configured && DB.signedIn) {
+        var NL = String.fromCharCode(10);
+        var body = encodeURIComponent([
+          'Name: ' + name,
+          'Email: ' + email,
+          'Company: ' + company,
+          '',
+          'Project details:',
+          message
+        ].join(NL));
+        DB.signIn(email, '').then(function () {
+          return DB.restoreSession();
+        }).then(function () {
+          var token = DB.session && DB.session.access_token;
+          if (!token) return;
+          return fetch(DB.baseURL() + '/rest/v1/public.enquiries', {
+            method: 'POST',
+            headers: {
+              apikey: DB.SUPABASE_ANON_KEY,
+              Authorization: 'Bearer ' + token,
+              'Content-Type': 'application/json',
+              'Prefer': 'return=minimal'
+            },
+            body: JSON.stringify({ email: email, name: name, company: company, message: message })
+          });
+        }).catch(function (err) {
+          if (window.console && console.warn) console.warn('[PTC] Could not store enquiry:', err.message);
+        });
+      }
+
+      // Open mail app as fallback / preview
       var NL = String.fromCharCode(10);
       var subject = encodeURIComponent('PTC website enquiry — ' + name);
       var body = encodeURIComponent([

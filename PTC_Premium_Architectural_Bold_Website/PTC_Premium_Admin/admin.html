@@ -65,6 +65,8 @@
       <button class="tab" data-tab="featured" aria-selected="false">Featured projects</button>
       <button class="tab" data-tab="index" aria-selected="false">Project index</button>
       <button class="tab" data-tab="gallery" aria-selected="false">Photo gallery</button>
+      <button class="tab" data-tab="enquiries" aria-selected="false">Enquiries</button>
+      <button class="tab" data-tab="insights" aria-selected="false">Insights</button>
     </nav>
 
     <!-- ---------- overview ---------- -->
@@ -88,6 +90,34 @@
             <button data-export="gallery-csv" type="button">Photo gallery · CSV</button>
           </div>
         </article>
+      </div>
+    </section>
+
+    <!-- ---------- enquiries ---------- -->
+    <section class="panel" id="panel-enquiries" hidden>
+      <div class="tools">
+        <input class="q" id="q-enquiries" type="search" placeholder="Search enquiries… (press /)" autocomplete="off" aria-label="Search enquiries">
+        <div class="chips" data-filters="enquiries" role="group" aria-label="Filter enquiries">
+          <button class="chip active" data-cat="all" aria-pressed="true">All</button>
+          <button class="chip" data-cat="new" aria-pressed="false">New</button>
+          <button class="chip" data-cat="read" aria-pressed="false">Read</button>
+          <button class="chip" data-cat="replied" aria-pressed="false">Replied</button>
+          <button class="chip" data-cat="archived" aria-pressed="false">Archived</button>
+        </div>
+        <p class="count" id="enquiriesCount" role="status" aria-live="polite"></p>
+      </div>
+      <div class="tablewrap">
+        <table id="enquiriesTable"><thead><tr><th>ID</th><th>Name</th><th>Email</th><th>Company</th><th>Status</th></tr></thead><tbody></tbody></table>
+      </div>
+    </section>
+
+    <!-- ---------- insights ---------- -->
+    <section class="panel" id="panel-insights" hidden>
+      <div class="tools">
+        <input class="q" id="q-insights" type="search" placeholder="Search insights… (press /)" autocomplete="off" aria-label="Search insights">
+      </div>
+      <div class="tablewrap">
+        <table id="insightsTable"><thead><tr><th>Metric</th><th>Value</th><th>Category</th><th>Date</th></tr></thead><tbody></tbody></table>
       </div>
     </section>
 

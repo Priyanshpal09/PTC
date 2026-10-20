@@ -197,6 +197,8 @@
     renderFeatured();
     renderIndex();
     renderGallery();
+    renderEnquiries();
+    renderInsights();
     wireTabs();
     wireSearch();
     wireFilters();
@@ -220,6 +222,12 @@
     return out;
   }
 
+  function enquiryCounts() {
+    var set = {};
+    // Could count by status, but we just return the total count from the UI
+    return 0; // placeholder - actual count rendered from admin table
+  }
+
   function renderStats() {
     var cats = categoryCounts();
     var items = [
@@ -232,6 +240,9 @@
     $('#stats').innerHTML = items.map(function (it) {
       return '<div class="stat"><b>' + it[1] + '</b><span>' + it[0] + '</span></div>';
     }).join('');
+
+    /* Enquiries count */
+    $('#enquiriesCount').textContent = fmt(enquiryCounts()) + ' enquiries';
   }
 
   /* ============================================================
@@ -289,6 +300,124 @@
   }
 
   /* ============================================================
+     Enquiries table
+     ============================================================ */
+  function renderEnquiries() {
+    var DB = window.PTC_DB;
+    if (!DB || !DB.configured || !DB.signedIn) {
+      $('#enquiriesTable').innerHTML = '<tr><td colspan="5" class="muted empty">Sign in to view enquiries</td></tr>';
+      $('#enquiriesCount').textContent = '0 enquiries';
+      return;
+    }
+
+    var url = DB.baseURL() + '/rest/v1/public.enquiries';
+    var token = DB.session && DB.session.access_token;
+    if (!token) {
+      $('#enquiriesTable').innerHTML = '<tr><td colspan="5" class="muted empty">Sign in to view enquiries</td></tr>';
+      $('#enquiriesCount').textContent = '0 enquiries';
+      return;
+    }
+
+    fetch(url, {
+      method: 'GET',
+      headers: {
+        apikey: DB.SUPABASE_ANON_KEY,
+        Authorization: 'Bearer ' + token,
+      }
+    }).then(function (res) {
+      return res.json();
+    }).then(function (enquiries) {
+      if (!enquiries || enquiries.length === 0) {
+        $('#enquiriesTable').innerHTML = '<tr><td colspan="5" class="muted">No enquiries yet</td></tr>';
+        $('#enquiriesCount').textContent = '0 enquiries';
+        return;
+      }
+
+      // Sort by created_at descending
+      enquiries.sort(function (a, b) {
+        return new Date(b.created_at) - new Date(a.created_at);
+      });
+
+      var rows = enquiries.map(function (e) {
+        var statusClass = 'status-' + (e.status || 'new');
+        var statusText = e.status || 'new';
+        return '<tr>' +
+          '<td>' + (e.id ? e.id.substring(0, 8) + '...' : '') + '</td>' +
+          '<td>' + (e.name || '—') + '</td>' +
+          '<td>' + (e.email || '—') + '</td>' +
+          '<td>' + (e.company || '—') + '</td>' +
+          '<td>' + '<span class="' + statusClass + '">' + statusText + '</span>' + '</td>' +
+          '</tr>';
+      }).join('');
+
+      $('#enquiriesTable').innerHTML = '<tr>' +
+        '<th>ID</th>' +
+        '<th>Name</th>' +
+        '<th>Email</th>' +
+        '<th>Company</th>' +
+        '<th>Status</th>' +
+        '</tr>' + rows;
+      $('#enquiriesCount').textContent = enquiries.length + ' enquiries';
+    }).catch(function (err) {
+      if (window.console && console.warn) console.warn('[PTC] Could not load enquiries:', err.message);
+      $('#enquiriesTable').innerHTML = '<tr><td colspan="5" class="muted error">Error loading enquiries</td></tr>';
+      $('#enquiriesCount').textContent = '0 enquiries';
+    });
+  }
+
+  /* ============================================================
+     Insights table
+     ============================================================ */
+  function renderInsights() {
+    var DB = window.PTC_DB;
+    if (!DB || !DB.configured || !DB.signedIn) {
+      $('#insightsTable').innerHTML = '<tr><td colspan="4" class="muted empty">Sign in to view insights</td></tr>';
+      return;
+    }
+
+    var url = DB.baseURL() + '/rest/v1/public.insights';
+    var token = DB.session && DB.session.access_token;
+    if (!token) {
+      $('#insightsTable').innerHTML = '<tr><td colspan="4" class="muted empty">Sign in to view insights</td></tr>';
+      return;
+    }
+
+    fetch(url, {
+      method: 'GET',
+      headers: {
+        apikey: DB.SUPABASE_ANON_KEY,
+        Authorization: 'Bearer ' + token,
+      }
+    }).then(function (res) {
+      return res.json();
+    }).then(function (insights) {
+      if (!insights || insights.length === 0) {
+        $('#insightsTable').innerHTML = '<tr><td colspan="4" class="muted">No insights yet</td></tr>';
+        return;
+      }
+
+      var rows = insights.map(function (i) {
+        return '<tr>' +
+          '<td>' + (i.metric || '—') + '</td>' +
+          '<td>' + (i.value || '—') + '</td>' +
+          '<td>' + (i.category || 'general') + '</td>' +
+          '<td>' + (i.created_at ? new Date(i.created_at).toLocaleDateString() : '—') + '</td>' +
+          '</tr>';
+      }).join('');
+
+      $('#insightsTable').innerHTML = '<tr>' +
+        '<th>Metric</th>' +
+        '<td>Value</th>' +
+        '<th>Category</th>' +
+        '<th>Date</th>' +
+        '</tr>' + rows;
+    }).catch(function (err) {
+      if (window.console && console.warn) console.warn('[PTC] Could not load insights:', err.message);
+      $('#insightsTable').innerHTML = '<tr><td colspan="4" class="muted error">Error loading insights</td></tr>';
+    });
+  }
+
+  /* ============================================================
      Tabs
      ============================================================ */
   function wireTabs() {
@@ -301,7 +430,7 @@
           b.classList.toggle('active', on);
           b.setAttribute('aria-selected', on ? 'true' : 'false');
         });
-        ['overview', 'featured', 'index', 'gallery'].forEach(function (name) {
+        ['overview', 'featured', 'index', 'gallery', 'enquiries', 'insights'].forEach(function (name) {
           var panel = $('#panel-' + name);
           if (panel) panel.hidden = name !== tab;
         });
