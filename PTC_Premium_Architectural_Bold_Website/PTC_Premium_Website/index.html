@@ -2,6 +2,16 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<!-- The admin deployment shares this folder. When the page is opened on an
+     admin host, send it straight to the console instead of the website. -->
+<script>
+  (function () {
+    var h = location.hostname;
+    if (h.indexOf('-admin') > -1 || h.indexOf('admin.') === 0) {
+      location.replace('/admin');
+    }
+  })();
+</script>
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#161719">
 <meta name="description" content="Parvati Techno Consultants (PTC) — structural design consultancy in Ahmedabad, Gujarat. Integrated civil, architectural, structural and PEB consultancy with 1,250+ completed projects across India.">
