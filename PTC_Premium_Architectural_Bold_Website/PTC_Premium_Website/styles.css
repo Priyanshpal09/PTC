@@ -1131,3 +1131,88 @@ footer{background:#0f1113;color:#a2a3a1;padding:clamp(46px,6vw,68px) 0 22px;font
   .gTile{aspect-ratio:auto;height:180px}
   a[href^="http"]:after{content:""}
 }
+
+/* ============================================================
+   UI / UX polish — motion & micro-interactions
+   (all of this is switched off under prefers-reduced-motion)
+   ============================================================ */
+
+/* anchor links clear the fixed header */
+html{scroll-padding-top:calc(var(--header-h) + 10px)}
+
+/* header retracts on scroll-down and returns on scroll-up */
+.top{
+  transition:background .4s var(--ease),border-color .4s var(--ease),
+             box-shadow .4s var(--ease),color .4s var(--ease),
+             transform .45s var(--ease);
+}
+.top.hide{transform:translateY(-104%)}
+
+/* hero — pointer-following glow */
+.heroGlow{
+  position:absolute;inset:0;z-index:1;pointer-events:none;
+  opacity:0;transition:opacity .5s var(--ease);
+  background:radial-gradient(460px circle at var(--mx,50%) var(--my,38%),
+             #ffffff30,transparent 60%);
+}
+.hero:hover .heroGlow{opacity:1}
+.heroAside,.heroBottom{z-index:2}
+
+/* hero — staged entrance */
+@keyframes heroUp{from{opacity:0;transform:translateY(26px)}to{opacity:1;transform:none}}
+.hero .heroKicker{animation:heroUp .8s var(--ease) .12s both}
+.hero h1{animation:heroUp .95s var(--ease) .24s both}
+.hero .heroLead{animation:heroUp .95s var(--ease) .4s both}
+.hero .buttons{animation:heroUp .95s var(--ease) .54s both}
+.heroAside{animation:heroUp .9s var(--ease) .62s both}
+.heroBottom{animation:heroUp .9s var(--ease) .72s both}
+
+/* buttons — light sheen sweep on hover */
+.btn{position:relative;overflow:hidden;isolation:isolate}
+.btn:after{
+  content:'';position:absolute;top:-20%;bottom:-20%;left:-70%;width:45%;
+  transform:skewX(-18deg);pointer-events:none;opacity:0;
+  background:linear-gradient(90deg,transparent,#ffffff66,transparent);
+}
+.btn:hover:after{animation:sheen .85s var(--ease)}
+@keyframes sheen{0%{left:-70%;opacity:0}25%{opacity:1}100%{left:130%;opacity:0}}
+
+/* section eyebrow rule draws out when the section reveals */
+.sectionhead.reveal .eyebrow:before{width:8px;transition:width .8s var(--ease)}
+.sectionhead.reveal.visible .eyebrow:before{width:26px}
+
+/* project cards — richer image treatment */
+.project img{
+  filter:saturate(1);
+  transition:transform .8s var(--ease),filter .6s var(--ease);
+}
+.project:hover img,.project:focus-visible img{filter:saturate(1.1) contrast(1.03)}
+
+/* project index rows — gentle slide */
+.ixRow{
+  transition:background var(--fast),box-shadow var(--fast),transform var(--fast);
+}
+.ixRow:hover{transform:translateX(4px)}
+
+/* stat blocks — small lift */
+.number{transition:transform .4s var(--ease)}
+.number:hover{transform:translateY(-4px)}
+
+/* floating badge — slow breathing shadow */
+@keyframes floatPulse{
+  0%,100%{box-shadow:0 18px 40px -18px #15171a40}
+  50%{box-shadow:0 26px 54px -18px #15171a66}
+}
+.floating{animation:floatPulse 5s ease-in-out infinite}
+
+/* filter chips — tactile press */
+.filter:active{transform:scale(.96)}
+
+/* new motion respects reduced-motion preferences */
+@media(prefers-reduced-motion:reduce){
+  .top.hide{transform:none}
+  .heroGlow{display:none}
+  .number:hover,.ixRow:hover{transform:none}
+  .floating{animation:none}
+}
+

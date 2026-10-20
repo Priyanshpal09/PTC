@@ -60,6 +60,7 @@
   var progress = $('#progress');
   var toTop = $('#toTop');
   var ticking = false;
+  var lastY = 0;
 
   function onScroll() {
     if (ticking) return;
@@ -67,9 +68,17 @@
     requestAnimationFrame(function () {
       var y = window.pageYOffset || document.documentElement.scrollTop || 0;
       var max = document.documentElement.scrollHeight - window.innerHeight;
-      if (header) header.classList.toggle('scrolled', y > 40);
+      var navOpen = document.body.classList.contains('nav-open');
+      if (header) {
+        header.classList.toggle('scrolled', y > 40);
+        /* tuck the bar away while reading downward, bring it back on any
+           upward scroll, near the top, or while the menu is open */
+        var goingDown = y > lastY + 2 && y > 340;
+        header.classList.toggle('hide', goingDown && !navOpen);
+      }
       if (progress) progress.style.transform = 'scaleX(' + (max > 0 ? Math.min(1, y / max) : 0) + ')';
-      if (toTop) toTop.classList.toggle('show', y > 640);
+      if (toTop) toTop.classList.toggle('show', y > 640 && !navOpen);
+      lastY = y;
       ticking = false;
     });
   }
@@ -107,6 +116,7 @@
       menuBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
       menuBtn.setAttribute('aria-label', open ? 'Close menu' : 'Open menu');
       document.body.classList.toggle('nav-open', open);
+      if (header) header.classList.remove('hide');
       if (open) {
         var firstLink = $('a', nav);
         if (firstLink) firstLink.focus({ preventScroll: true });
@@ -222,6 +232,25 @@
     });
 
     startSlider();
+  }
+
+  /* ---------------------------------------------------------
+     Hero glow — the artwork follows the pointer (desktop, motion ok)
+     --------------------------------------------------------- */
+  if (hero && !reduceMotion) {
+    var glowQueued = false;
+    hero.addEventListener('pointermove', function (e) {
+      if (glowQueued) return;
+      glowQueued = true;
+      var rect = hero.getBoundingClientRect();
+      var x = ((e.clientX - rect.left) / rect.width) * 100;
+      var y = ((e.clientY - rect.top) / rect.height) * 100;
+      requestAnimationFrame(function () {
+        hero.style.setProperty('--mx', x.toFixed(2) + '%');
+        hero.style.setProperty('--my', y.toFixed(2) + '%');
+        glowQueued = false;
+      });
+    }, { passive: true });
   }
 
   /* ---------------------------------------------------------
