@@ -90,6 +90,21 @@
             <button data-export="gallery-csv" type="button">Photo gallery · CSV</button>
           </div>
         </article>
+        <article class="card" id="addProjectCard" hidden>
+          <h2>Add New Project</h2>
+          <div class="tools">
+            <select id="newProjectCategory" aria-label="Project category">
+              <option value="building">Building</option>
+              <option value="residential">Residential</option>
+              <option value="industrial">Industrial & PEB</option>
+            </select>
+            <input id="newProjectName" type="text" placeholder="Project name" required>
+            <input id="newProjectLocation" type="text" placeholder="Location" required>
+            <input id="newProjectImage" type="text" placeholder="Image filename" required>
+            <input id="newProjectDetail" type="text" placeholder="Detail" required>
+            <button class="btn" id="btnAddProject" type="button">Add Project</button>
+          </div>
+        </article>
       </div>
     </section>
 
@@ -140,7 +155,7 @@
       <p class="count" id="count-featured" role="status" aria-live="polite"></p>
       <div class="tablewrap">
         <table id="table-featured">
-          <thead><tr><th>Photo</th><th>Project</th><th>Category</th><th>Location</th><th>Detail</th></tr></thead>
+          <thead><tr><th>Photo</th><th>Project</th><th>Category</th><th>Location</th><th>Detail</th><th style="width:1%">Actions</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -187,9 +202,19 @@
         </div>
       </div>
       <p class="count" id="count-gallery" role="status" aria-live="polite"></p>
+      <div class="tools" style="margin-bottom:16px">
+        <select id="newGalleryCategory" aria-label="Gallery category">
+          <option value="Institutional & Special">Institutional & Special</option>
+          <option value="Residential">Residential</option>
+          <option value="Industrial & PEB">Industrial & PEB</option>
+        </select>
+        <input id="newGalleryImage" type="text" placeholder="Image filename" required>
+        <input id="newGalleryCaption" type="text" placeholder="Caption" required>
+        <button class="btn" id="btnAddGalleryPhoto" type="button">Add Photo</button>
+      </div>
       <div class="tablewrap">
         <table id="table-gallery">
-          <thead><tr><th>Photo</th><th>Caption</th><th>Category</th><th>File</th></tr></thead>
+          <thead><tr><th>Photo</th><th>Caption</th><th>Category</th><th>File</th><th>Actions</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>

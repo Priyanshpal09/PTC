@@ -286,6 +286,48 @@
     return loadContent();
   };
 
+  /* ----- Projects CRUD ----- */
+  DB.addProject = function (category, name, location, image, detail) {
+    if (!DB.configured) return Promise.reject(new Error('Supabase is not configured yet.'));
+    var url = baseURL() + '/rest/v1/projects';
+    return request(url, {
+      method: 'POST',
+      headers: headers({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }),
+      body: JSON.stringify({ category: text(category), name: text(name), location: text(location), image: text(image), detail: text(detail) })
+    }, 'Adding project');
+  };
+
+  DB.deleteProject = function (id) {
+    if (!DB.configured) return Promise.reject(new Error('Supabase is not configured yet.'));
+    var url = baseURL() + '/rest/v1/projects?id=eq.' + encodeURIComponent(id);
+    return request(url, {
+      method: 'DELETE',
+      headers: headers()
+    }, 'Deleting project');
+  };
+
+  /* ----- Gallery Photo CRUD ----- */
+  DB.addGalleryPhoto = function (image, caption, category) {
+    if (!DB.configured) return Promise.reject(new Error('Supabase is not configured yet.'));
+    var url = baseURL() + '/rest/v1/gallery_photos';
+    return request(url, {
+      method: 'POST',
+      headers: headers({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }),
+      body: JSON.stringify({ image: text(image), caption: text(caption), category: text(category) })
+    }, 'Adding gallery photo');
+  };
+
+  DB.deleteGalleryPhoto = function (id) {
+    if (!DB.configured) return Promise.reject(new Error('Supabase is not configured yet.'));
+    var url = baseURL() + '/rest/v1/gallery_photos?id=eq.' + encodeURIComponent(id);
+    return request(url, {
+      method: 'DELETE',
+      headers: headers()
+    }, 'Deleting gallery photo');
+  };
+
+  /* ----- End Projects/Gallery CRUD ----- */
+
   restoreSession().then(function () {
     return loadContent();
   });

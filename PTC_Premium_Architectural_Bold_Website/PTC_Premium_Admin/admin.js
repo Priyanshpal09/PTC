@@ -717,4 +717,114 @@
     });
   }
 
+  /* ============================================================
+     Add Project
+     ============================================================ */
+  function wireAddProject() {
+    var category = $('#newProjectCategory').value;
+    var name = $('#newProjectName').value;
+    var location = $('#newProjectLocation').value;
+    var image = $('#newProjectImage').value;
+    var detail = $('#newProjectDetail').value;
+    if (!category || !name) return;
+    PTC_DB.addProject(category, name, location, image, detail).then(function () {
+      $('#addProjectCard').hidden = true;
+      $('#newProjectName').value = '';
+      $('#newProjectLocation').value = '';
+      $('#newProjectImage').value = '';
+      $('#newProjectDetail').value = '';
+      PTC_DB.reload();
+    }).catch(function (err) {
+      if (window.console && console.warn) console.warn('[PTC] Could not add project:', err.message);
+    });
+  }
+
+  /* ============================================================
+     Add Gallery Photo
+     ============================================================ */
+  function wireAddGalleryPhoto() {
+    var category = $('#newGalleryCategory').value;
+    var image = $('#newGalleryImage').value;
+    var caption = $('#newGalleryCaption').value;
+    if (!category || !image) return;
+    PTC_DB.addGalleryPhoto(image, caption, category).then(function () {
+      $('#newGalleryImage').value = '';
+      $('#newGalleryCaption').value = '';
+      PTC_DB.reload();
+    }).catch(function (err) {
+      if (window.console && console.warn) console.warn('[PTC] Could not add gallery photo:', err.message);
+    });
+  }
+
+  /* ============================================================
+     Delete Project from Featured table
+     ============================================================ */
+  function wireDeleteProject() {
+    $('#table-featured').addEventListener('click', function (ev) {
+      var btn = ev.target.closest ? ev.target.closest('[data-delete-project]') : null;
+      if (!btn) return;
+      var id = btn.getAttribute('data-delete-project');
+      if (!id) return;
+      if (!confirm('Delete this project?')) return;
+      PTC_DB.deleteProject(id).then(function () {
+        PTC_DB.reload();
+      }).catch(function (err) {
+        if (window.console && console.warn) console.warn('[PTC] Could not delete project:', err.message);
+      });
+    });
+  }
+
+  /* ============================================================
+     Delete Gallery Photo from table
+     ============================================================ */
+  function wireDeleteGalleryPhoto() {
+    $('#table-gallery').addEventListener('click', function (ev) {
+      var btn = ev.target.closest ? ev.target.closest('[data-delete-gallery]') : null;
+      if (!btn) return;
+      var id = btn.getAttribute('data-delete-gallery');
+      if (!id) return;
+      if (!confirm('Delete this photograph?')) return;
+      PTC_DB.deleteGalleryPhoto(id).then(function () {
+        PTC_DB.reload();
+      }).catch(function (err) {
+        if (window.console && console.warn) console.warn('[PTC] Could not delete gallery photo:', err.message);
+      });
+    });
+  }
+
+  /* ============================================================
+     Wire all add/delete actions
+     ============================================================ */
+  function wireAddDeleteActions() {
+    wireAddProject();
+    wireAddGalleryPhoto();
+    wireDeleteProject();
+    wireDeleteGalleryPhoto();
+  }
+
+  /* ============================================================
+     Bootstrap wire-up
+     ============================================================ */
+  function boot() {
+    if (booted) return;
+    booted = true;
+
+    wireAddDeleteActions();
+
+    renderStats();
+    renderOverview();
+    renderFeatured();
+    renderIndex();
+    renderGallery();
+    renderEnquirySummary();
+    renderEnquiries();
+    renderInsights();
+    wireEnquiryActions();
+    wireTabs();
+    wireSearch();
+    wireFilters();
+    wireExports();
+    wireShortcut();
+  }
+
 })();
