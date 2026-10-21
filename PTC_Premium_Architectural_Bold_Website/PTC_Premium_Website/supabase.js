@@ -75,8 +75,40 @@
 
   function select(table, columns) {
     var url = baseURL() + '/rest/v1/' + table +
-      '?select=' + encodeURIComponent(columns) + '&order=sort_order.asc';
+      '?select=' + encodeURIComponent(columns) + '&order=sort_order.asc,id.asc';
     return request(url, { headers: headers() }, 'Reading ' + table);
+  }
+
+  /* Writes are staff-only: the row level security policies in schema.sql
+     grant insert/update/delete to authenticated users only. Saying so up
+     front gives the admin console a useful message instead of a 401. */
+  function staffOnly() {
+    if (!DB.configured) {
+      return new Error('Supabase is not configured yet — changes cannot be saved.');
+    }
+    if (!DB.signedIn) {
+      return new Error('Staff sign-in required — sign in with your staff account to add or delete projects.');
+    }
+    return null;
+  }
+
+  function insert(table, row, what) {
+    var blocked = staffOnly();
+    if (blocked) return Promise.reject(blocked);
+    var url = baseURL() + '/rest/v1/' + table;
+    return request(url, {
+      method: 'POST',
+      headers: headers({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }),
+      body: JSON.stringify(row)
+    }, what);
+  }
+
+  function remove(table, id, what) {
+    var blocked = staffOnly();
+    if (blocked) return Promise.reject(blocked);
+    if (id == null || id === '') return Promise.reject(new Error('Missing row id — reload the console and try again.'));
+    var url = baseURL() + '/rest/v1/' + table + '?id=eq.' + encodeURIComponent(id);
+    return request(url, { method: 'DELETE', headers: headers() }, what);
   }
 
   function text(value) {
@@ -93,29 +125,30 @@
     }
 
     return Promise.all([
-      select(TABLES.projects, 'category,name,location,image,detail'),
-      select(TABLES.indexEntries, 'category,name,location,detail'),
-      select(TABLES.gallery, 'image,caption,category')
+      select(TABLES.projects, 'id,category,name,location,image,detail'),
+      select(TABLES.indexEntries, 'id,category,name,location,detail'),
+      select(TABLES.gallery, 'id,image,caption,category')
     ]).then(function (rows) {
       var projects = rows[0] || [];
       var indexEntries = rows[1] || [];
       var gallery = rows[2] || [];
 
-      /* only take over when the database actually has rows, so an empty
-         or half-filled table can never blank out the site */
-      if (projects.length) {
+      /* Only take over when the database actually has rows, so an empty or
+         half-filled table can never blank out the public site. Signed-in
+         staff are the exception: they must see a table they just emptied. */
+      if (projects.length || DB.signedIn) {
         PTC.projects = projects.map(function (p) {
-          return [p.category, p.name, text(p.location), text(p.image), text(p.detail)];
+          return [p.category, p.name, text(p.location), text(p.image), text(p.detail), p.id];
         });
       }
-      if (indexEntries.length) {
+      if (indexEntries.length || DB.signedIn) {
         PTC.indexEntries = indexEntries.map(function (e) {
-          return [e.category, e.name, text(e.location), text(e.detail)];
+          return [e.category, e.name, text(e.location), text(e.detail), e.id];
         });
       }
-      if (gallery.length) {
+      if (gallery.length || DB.signedIn) {
         PTC.gallery = gallery.map(function (g) {
-          return [text(g.image), text(g.caption), text(g.category)];
+          return [text(g.image), text(g.caption), text(g.category), g.id];
         });
       }
 
@@ -276,6 +309,39 @@
       headers: headers({ 'Content-Type': 'application/json', 'Prefer': 'return=minimal' }),
       body: JSON.stringify({ status: status })
     }, 'Updating enquiry');
+  };
+
+  /* ---------------------------------------------------------
+     Project content — add and delete (staff accounts only)
+     The tuple shapes above carry the row id in their last slot:
+       projects      [category, name, location, image, detail, id]
+       index_entries [category, name, location, detail, id]
+     --------------------------------------------------------- */
+  DB.addProject = function (project) {
+    return insert('projects', {
+      category: text(project.category),
+      name: text(project.name),
+      location: text(project.location),
+      image: text(project.image),
+      detail: text(project.detail)
+    }, 'Adding project');
+  };
+
+  DB.deleteProject = function (id) {
+    return remove('projects', id, 'Deleting project');
+  };
+
+  DB.addIndexEntry = function (entry) {
+    return insert('index_entries', {
+      category: text(entry.category),
+      name: text(entry.name),
+      location: text(entry.location),
+      detail: text(entry.detail)
+    }, 'Adding project index entry');
+  };
+
+  DB.deleteIndexEntry = function (id) {
+    return remove('index_entries', id, 'Deleting project index entry');
   };
 
   DB.signIn = signIn;

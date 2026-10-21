@@ -116,6 +116,9 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .gateCard .back{color:var(--muted);font-size:13px;margin-top:4px}
 .gateCard .back:hover{color:var(--ink)}
 
+.linkish{padding:0;font-size:12.5px;color:var(--muted);text-decoration:underline;text-underline-offset:3px;text-align:left}
+.linkish:hover{color:var(--ink)}
+
 /* ============================================================
    Console shell
    ============================================================ */
@@ -305,6 +308,113 @@ button{font:inherit;color:inherit;background:none;border:0;cursor:pointer}
 .count{font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted);margin-bottom:12px}
 .count b{color:var(--ink);font-weight:500}
 
+/* ---------- editing: add/delete, access notice ---------- */
+.addbtn{
+  padding:9px 14px;
+  font-size:10.5px;
+  font-weight:600;
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:#fff;
+  background:var(--red);
+  border:1px solid var(--red);
+  border-radius:2px;
+  transition:background .2s,transform .2s,opacity .2s;
+}
+.addbtn:hover{background:var(--red-soft);transform:translateY(-1px)}
+.addbtn[disabled]{opacity:.5;cursor:not-allowed;transform:none}
+
+td.actions{width:1%;white-space:nowrap;text-align:right}
+
+.chip.danger{color:#ff9d97;border-color:#e2384359}
+.chip.danger:hover{color:#fff;background:var(--red);border-color:var(--red)}
+.chip.danger[disabled]{opacity:.45;cursor:not-allowed}
+
+.who{
+  padding:7px 10px;
+  font-size:10.5px;
+  letter-spacing:.06em;
+  color:#b9d6c6;
+  background:#4bbd8b14;
+  border:1px solid #4bbd8b4d;
+  border-radius:2px;
+}
+
+.notice{
+  max-width:360px;
+  padding:7px 11px;
+  font-size:11.5px;
+  line-height:1.45;
+  color:#b9d6c6;
+  background:#4bbd8b14;
+  border:1px solid #4bbd8b4d;
+  border-radius:2px;
+}
+.notice.is-error{color:#ffb4ae;background:#b7232c1f;border-color:#e2384359}
+
+.editnote{
+  margin:-6px 0 20px;
+  padding:11px 14px;
+  font-size:12.5px;
+  color:#ffd9a1;
+  background:#b7232c14;
+  border:1px solid #b7232c40;
+  border-left:2px solid var(--red);
+  border-radius:2px;
+}
+.editnote strong{color:#ffe2b8;font-weight:700}
+.editnote .linkish{color:#ffd9a1}
+.editnote .linkish:hover{color:#fff}
+
+/* ---------- add-project dialog ---------- */
+.editor{
+  width:min(560px,calc(100% - 32px));
+  max-height:calc(100vh - 40px);
+  padding:0;
+  color:var(--ink);
+  background:var(--card);
+  border:1px solid var(--line);
+  border-radius:4px;
+  box-shadow:0 40px 90px #000000a6;
+}
+.editor::backdrop{background:#0a0b0cf0;backdrop-filter:blur(3px)}
+
+.editorForm{display:flex;flex-direction:column;gap:14px;padding:28px 28px 24px}
+.editorForm h2{font-size:22px}
+.editorForm > .muted{font-size:13px;margin-top:-6px}
+
+.field{display:flex;flex-direction:column;gap:6px}
+.field > span{font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
+.field > span small{font-size:11px;letter-spacing:0;text-transform:none;color:#7d8287}
+.field input,.field select,.field textarea{
+  width:100%;
+  padding:11px 13px;
+  font:inherit;
+  font-size:14px;
+  color:var(--ink);
+  background:#101214;
+  border:1px solid var(--line);
+  border-radius:3px;
+}
+.field textarea{min-height:74px;resize:vertical}
+.field input::placeholder,.field textarea::placeholder{color:#6b7075}
+.field input:focus,.field select:focus,.field textarea:focus{outline:0;border-color:var(--red-soft)}
+
+.editorForm .err{color:#ff8b83;font-size:13px}
+.edActions{display:flex;justify-content:flex-end;gap:10px;padding-top:2px}
+.submitbtn{
+  padding:12px 18px;
+  font:600 12px/1 var(--head);
+  letter-spacing:.1em;
+  text-transform:uppercase;
+  color:#fff;
+  background:var(--red);
+  border-radius:2px;
+  transition:background .2s,opacity .2s;
+}
+.submitbtn:hover{background:var(--red-soft)}
+.submitbtn[disabled]{opacity:.6;cursor:progress}
+
 /* ---------- tables ---------- */
 .tablewrap{
   overflow:auto;
@@ -395,6 +505,9 @@ td.loc{white-space:nowrap;color:#d3d6d9}
 
 @media(max-width:640px){
   body{font-size:14px}
+  .editorForm{padding:22px 20px 20px}
+  .editorForm h2{font-size:19px}
+  .notice{max-width:none}
   .bar{gap:12px;padding:14px 0}
   .brand small{display:none}
   .stats{grid-template-columns:1fr 1fr;gap:10px}

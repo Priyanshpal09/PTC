@@ -14,6 +14,7 @@
   'use strict';
 
   var STORE_KEY = 'ptc-admin-unlocked';
+  var SIGNIN_HINT = 'ptc-admin-show-signin';
   var ADMIN_PIN = 'ptc2026';
 
   var PTC = window.PTC || {};
@@ -63,6 +64,10 @@
   var signErr = $('#signErr');
   var signBtn = $('#signBtn');
   var sourceBadge = $('#source');
+  var whoBadge = $('#who');
+  var editNote = $('#editAccess');
+  var noticeEl = $('#notice');
+  var noticeTimer = null;
 
   function unlock() {
     gate.hidden = true;
@@ -91,10 +96,32 @@
     if (unlocked()) unlock(); else pinInput.focus();
   }
 
+  /* Sending staff to sign in needs the gate back: the console locks and
+     comes back showing the account form instead of the PIN screen. */
+  function goSignIn() {
+    var DB = window.PTC_DB;
+    if (!DB || !DB.configured) {
+      notify('Supabase is not configured — add your project URL and key to supabase.js first.', true);
+      return;
+    }
+    if (DB.signedIn) {
+      notify('Already signed in as ' + (DB.user && DB.user.email ? DB.user.email : 'staff') + '.');
+      return;
+    }
+    try { sessionStorage.setItem(SIGNIN_HINT, '1'); } catch (e) { /* private mode */ }
+    window.location.reload();
+  }
+
+  function wantsSignIn() {
+    try { return sessionStorage.getItem(SIGNIN_HINT) === '1'; } catch (e) { return false; }
+  }
+
   function startGate() {
     var DB = window.PTC_DB;
     /* already signed in with a staff account → straight in */
     if (DB && DB.configured && DB.signedIn) { unlock(); return; }
+    /* staff asked for the account form — show it instead of the PIN */
+    if (DB && DB.configured && wantsSignIn()) { showSignIn(true); return; }
     /* everyone else reaches the console with the staff PIN, so the console is
        never locked behind an account that may not exist yet. Signed-in staff
        still get live Supabase data; PIN access uses the bundled data.js. */
@@ -116,6 +143,7 @@
       signErr.hidden = true;
       if (signBtn) { signBtn.disabled = true; signBtn.textContent = 'Signing in…'; }
       PTC_DB.signIn(email, password).then(function () {
+        try { sessionStorage.removeItem(SIGNIN_HINT); } catch (e) { /* ignore */ }
         unlock();
       }).catch(function (err) {
         signErr.textContent = (err && err.message) ? err.message : 'Sign-in failed — please try again.';
@@ -127,6 +155,11 @@
       });
     });
   }
+
+  var useSignInBtn = $('#useSignIn');
+  var usePinBtn = $('#usePin');
+  if (useSignInBtn) useSignInBtn.addEventListener('click', showSignIn);
+  if (usePinBtn) usePinBtn.addEventListener('click', usePIN);
 
   gateForm.addEventListener('submit', function (e) {
     e.preventDefault();
@@ -180,17 +213,14 @@
       else sourceBadge.textContent = 'Supabase offline · data.js';
       sourceBadge.title = DB && DB.error ? DB.error.message : 'Content source';
     }
+
+    updateEditAccess();
   }
 
   window.addEventListener('ptc:content', applyContent);
   applyContent();
 
   function boot() {
-    if (booted) return;
-    booted = true;
-    wireAddDeleteActions();
-
-    
     if (booted) return;
     booted = true;
 
@@ -202,13 +232,58 @@
     renderEnquirySummary();
     renderEnquiries();
     renderInsights();
+    updateEditAccess();
     wireEnquiryActions();
     wireTabs();
     wireSearch();
     wireFilters();
     wireExports();
+    wireEditor();
     wireShortcut();
   }
+
+  /* ============================================================
+     Editing access — the PIN opens the data read-only; only a
+     signed-in staff account can write (row level security in
+     supabase/schema.sql enforces the same rule server-side).
+     ============================================================ */
+  function staffSignedIn() {
+    var DB = window.PTC_DB;
+    return !!(DB && DB.configured && DB.signedIn);
+  }
+
+  function updateEditAccess() {
+    var DB = window.PTC_DB;
+    var signedIn = staffSignedIn();
+
+    if (editNote) editNote.hidden = signedIn;
+
+    if (whoBadge) {
+      var email = DB && DB.user && DB.user.email;
+      whoBadge.hidden = !signedIn;
+      whoBadge.textContent = signedIn ? 'Signed in · ' + (email || 'staff') : '';
+      whoBadge.title = signedIn ? 'This account can add and delete projects' : '';
+    }
+
+    $$('.addbtn').forEach(function (btn) {
+      btn.disabled = false;
+      btn.title = signedIn
+        ? 'Add a project to the website'
+        : 'Staff sign-in required — use the sign-in link';
+    });
+  }
+
+  function notify(message, isError) {
+    if (!noticeEl) return;
+    noticeEl.textContent = message;
+    noticeEl.hidden = false;
+    noticeEl.classList.toggle('is-error', !!isError);
+    clearTimeout(noticeTimer);
+    noticeTimer = setTimeout(function () { noticeEl.hidden = true; }, isError ? 8000 : 4000);
+  }
+
+  var editSignInBtn = $('#editSignIn');
+  if (editSignInBtn) editSignInBtn.addEventListener('click', goSignIn);
 
   /* ============================================================
      Stats
@@ -547,6 +622,19 @@
   }
 
   /* ============================================================
+     Row actions — the database id lives in the last slot of each
+     tuple loaded by supabase.js; the data.js baseline has none.
+     ============================================================ */
+  function deleteCell(table, id, label) {
+    if (id == null || id === '') {
+      return '<td class="actions"><button class="chip" type="button" disabled ' +
+        'title="Editable rows load from Supabase for signed-in staff">Delete</button></td>';
+    }
+    return '<td class="actions"><button class="chip danger" type="button" ' +
+      'data-delete="' + esc(table) + '" data-id="' + esc(id) + '" data-name="' + esc(label) + '">Delete</button></td>';
+  }
+
+  /* ============================================================
      Featured projects table
      ============================================================ */
   function renderFeatured() {
@@ -568,9 +656,9 @@
         '<td><span class="tag ' + esc(p[0]) + '">' + esc(categoryLabel[p[0]] || p[0]) + '</span></td>' +
         '<td class="loc">' + esc(p[2]) + '</td>' +
         '<td class="detail">' + (p[4] ? esc(p[4]) : '<span class="file">—</span>') + '</td>' +
-        '<td style="width:1%"><button class="chip" type="button" data-delete-project="' + p[0] + '-' + (p[1] ? p[1].substring(0,8) + '…' : '—') + '">Delete</button></td>' +
+        deleteCell('projects', p[5], p[1]) +
         '</tr>';
-    }).join('') || '<tr><td colspan="5" class="muted empty">No projects match that search.</td></tr>';
+    }).join('') || '<tr><td colspan="6" class="muted empty">No projects match that search.</td></tr>';
   }
 
   /* ============================================================
@@ -595,6 +683,7 @@
         '<td class="proj">' + esc(p[1]) + '</td>' +
         '<td class="loc">' + esc(p[2]) + '</td>' +
         '<td class="detail">' + (p[3] ? esc(p[3]) : '<span class="file">—</span>') + '</td>' +
+        deleteCell('index_entries', p[4], p[1]) +
         '</tr>';
     }).join('');
 
@@ -623,7 +712,6 @@
         '<td class="proj">' + esc(g[1]) + '</td>' +
         '<td><span class="tag">' + esc(g[2]) + '</span></td>' +
         '<td class="file">' + esc(g[0]) + '</td>' +
-        '<td style="width:1%"><button class="chip" type="button" data-delete-gallery="' + g[0] + '">Delete</button></td>' +
         '</tr>';
     }).join('') || '<tr><td colspan="4" class="muted empty">No photographs match that search.</td></tr>';
   }
@@ -633,6 +721,162 @@
     else if (name === 'index') renderIndex();
     else if (name === 'gallery') renderGallery();
     else if (name === 'enquiries') renderEnquiries();
+  }
+
+  /* ============================================================
+     Add / delete projects — staff accounts only
+     ============================================================ */
+  var EDITOR_COPY = {
+    projects: {
+      title: 'Add featured project',
+      hint: 'Adds a project card to the Featured projects section of the website.',
+      image: true
+    },
+    index_entries: {
+      title: 'Add project index entry',
+      hint: 'Adds a row to the complete project index on the website.',
+      image: false
+    }
+  };
+
+  var editor = $('#editor');
+  var editorForm = $('#editorForm');
+  var editorKind = 'projects';
+
+  function openEditor(kind) {
+    var copy = EDITOR_COPY[kind];
+    var DB = window.PTC_DB;
+    if (!copy || !editor) return;
+
+    if (!DB || !DB.configured) {
+      notify('Connect Supabase to add projects — the PIN view only reads data.js.', true);
+      return;
+    }
+    if (!DB.signedIn) {
+      notify('Staff sign-in required — use the “staff sign-in” link to enter your account.', true);
+      return;
+    }
+
+    editorKind = kind;
+    $('#editorTitle').textContent = copy.title;
+    $('#editorHint').textContent = copy.hint;
+    $('#edImageField').hidden = !copy.image;
+    $('#edErr').hidden = true;
+    $('#edCategory').value = 'building';
+    $('#edName').value = '';
+    $('#edLocation').value = '';
+    $('#edImage').value = '';
+    $('#edDetail').value = '';
+    $('#edSave').textContent = copy.title;
+
+    if (typeof editor.showModal === 'function') editor.showModal();
+    else editor.setAttribute('open', '');
+    $('#edName').focus();
+  }
+
+  function closeEditor() {
+    if (!editor) return;
+    if (typeof editor.close === 'function') editor.close();
+    else editor.removeAttribute('open');
+  }
+
+  function editorError(message) {
+    var err = $('#edErr');
+    if (!err) return;
+    err.textContent = message;
+    err.hidden = false;
+  }
+
+  function wireEditor() {
+    if (editor) {
+      document.addEventListener('click', function (ev) {
+        var addBtn = ev.target.closest ? ev.target.closest('[data-add]') : null;
+        if (addBtn) {
+          openEditor(addBtn.getAttribute('data-add'));
+          return;
+        }
+
+        var delBtn = ev.target.closest ? ev.target.closest('[data-delete]') : null;
+        if (!delBtn) return;
+        deleteRow(delBtn);
+      });
+    }
+
+    if (editorForm) {
+      editorForm.addEventListener('submit', function (ev) {
+        ev.preventDefault();
+        var DB = window.PTC_DB;
+        if (!DB || !DB.signedIn) {
+          editorError('Staff sign-in required — sign in with your staff account first.');
+          return;
+        }
+
+        var name = $('#edName').value.trim();
+        var category = $('#edCategory').value;
+        if (!name) {
+          editorError('Enter the project name.');
+          $('#edName').focus();
+          return;
+        }
+
+        var payload = {
+          category: category,
+          name: name,
+          location: $('#edLocation').value.trim(),
+          image: $('#edImage').value.trim(),
+          detail: $('#edDetail').value.trim()
+        };
+        var kind = editorKind;
+        var saveBtn = $('#edSave');
+
+        $('#edErr').hidden = true;
+        saveBtn.disabled = true;
+        saveBtn.textContent = 'Saving…';
+
+        var action = kind === 'projects' ? DB.addProject(payload) : DB.addIndexEntry(payload);
+        action.then(function () {
+          closeEditor();
+          notify((kind === 'projects' ? 'Project' : 'Index entry') + ' “' + name + '” added.');
+          return DB.reload();
+        }).catch(function (err) {
+          editorError((err && err.message) ? err.message : 'Could not save — please try again.');
+        }).then(function () {
+          saveBtn.disabled = false;
+          saveBtn.textContent = EDITOR_COPY[kind].title;
+        });
+      });
+    }
+
+    var cancelBtn = $('#edCancel');
+    if (cancelBtn) cancelBtn.addEventListener('click', closeEditor);
+  }
+
+  function deleteRow(btn) {
+    var DB = window.PTC_DB;
+    var table = btn.getAttribute('data-delete');
+    var id = btn.getAttribute('data-id');
+    var label = btn.getAttribute('data-name') || 'this project';
+
+    if (!DB || !DB.signedIn) {
+      notify('Staff sign-in required — use the “staff sign-in” link to delete projects.', true);
+      return;
+    }
+    if (table !== 'projects' && table !== 'index_entries') return;
+    if (!id) {
+      notify('This row has no database id yet — reload the console once Supabase is connected.', true);
+      return;
+    }
+    if (!window.confirm('Delete “' + label + '” from the website?\n\nThis cannot be undone.')) return;
+
+    btn.disabled = true;
+    var action = table === 'projects' ? DB.deleteProject(id) : DB.deleteIndexEntry(id);
+    action.then(function () {
+      notify('Deleted “' + label + '”.');
+      return DB.reload();
+    }).catch(function (err) {
+      btn.disabled = false;
+      notify((err && err.message) ? err.message : 'Could not delete — please try again.', true);
+    });
   }
 
   /* ============================================================
@@ -722,121 +966,6 @@
         builders[key]();
       }
     });
-  }
-
-  /* ============================================================
-     Add Project
-     ============================================================ */
-  function wireAddProject() {
-    var category = $('#newProjectCategory').value;
-    var name = $('#newProjectName').value;
-    var location = $('#newProjectLocation').value;
-    var image = $('#newProjectImage').value;
-    var detail = $('#newProjectDetail').value;
-    if (!category || !name) return;
-    PTC_DB.addProject(category, name, location, image, detail).then(function () {
-      $('#addProjectCard').hidden = true;
-      $('#newProjectName').value = '';
-      $('#newProjectLocation').value = '';
-      $('#newProjectImage').value = '';
-      $('#newProjectDetail').value = '';
-      PTC_DB.reload();
-    }).catch(function (err) {
-      if (window.console && console.warn) console.warn('[PTC] Could not add project:', err.message);
-    });
-  }
-
-  /* ============================================================
-     Add Gallery Photo
-     ============================================================ */
-  function wireAddGalleryPhoto() {
-    var category = $('#newGalleryCategory').value;
-    var image = $('#newGalleryImage').value;
-    var caption = $('#newGalleryCaption').value;
-    if (!category || !image) return;
-    PTC_DB.addGalleryPhoto(image, caption, category).then(function () {
-      $('#newGalleryImage').value = '';
-      $('#newGalleryCaption').value = '';
-      PTC_DB.reload();
-    }).catch(function (err) {
-      if (window.console && console.warn) console.warn('[PTC] Could not add gallery photo:', err.message);
-    });
-  }
-
-  /* ============================================================
-     Delete Project from Featured table
-     ============================================================ */
-  function wireDeleteProject() {
-    $('#table-featured').addEventListener('click', function (ev) {
-      var btn = ev.target.closest ? ev.target.closest('[data-delete-project]') : null;
-      if (!btn) return;
-      var id = btn.getAttribute('data-delete-project');
-      if (!id) return;
-      if (!confirm('Delete this project?')) return;
-      PTC_DB.deleteProject(id).then(function () {
-        PTC_DB.reload();
-      }).catch(function (err) {
-        if (window.console && console.warn) console.warn('[PTC] Could not delete project:', err.message);
-      });
-    });
-  }
-
-  /* ============================================================
-     Delete Gallery Photo from table
-     ============================================================ */
-  function wireDeleteGalleryPhoto() {
-    $('#table-gallery').addEventListener('click', function (ev) {
-      var btn = ev.target.closest ? ev.target.closest('[data-delete-gallery]') : null;
-      if (!btn) return;
-      var id = btn.getAttribute('data-delete-gallery');
-      if (!id) return;
-      if (!confirm('Delete this photograph?')) return;
-      PTC_DB.deleteGalleryPhoto(id).then(function () {
-        PTC_DB.reload();
-      }).catch(function (err) {
-        if (window.console && console.warn) console.warn('[PTC] Could not delete gallery photo:', err.message);
-      });
-    });
-  }
-
-  /* ============================================================
-     Wire all add/delete actions
-     ============================================================ */
-  function wireAddDeleteActions() {
-    wireAddProject();
-    wireAddGalleryPhoto();
-    wireDeleteProject();
-    wireDeleteGalleryPhoto();
-  }
-
-  /* ============================================================
-     Bootstrap wire-up
-     ============================================================ */
-  function boot() {
-    if (booted) return;
-    booted = true;
-    wireAddDeleteActions();
-
-    
-    if (booted) return;
-    booted = true;
-
-    wireAddDeleteActions();
-
-    renderStats();
-    renderOverview();
-    renderFeatured();
-    renderIndex();
-    renderGallery();
-    renderEnquirySummary();
-    renderEnquiries();
-    renderInsights();
-    wireEnquiryActions();
-    wireTabs();
-    wireSearch();
-    wireFilters();
-    wireExports();
-    wireShortcut();
   }
 
 })();

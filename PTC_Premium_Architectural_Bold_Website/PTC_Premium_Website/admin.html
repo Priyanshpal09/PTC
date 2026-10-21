@@ -26,6 +26,7 @@
     <input id="signPass" type="password" autocomplete="current-password" placeholder="Password" aria-label="Staff password" required>
     <p class="err" id="signErr" role="alert" hidden></p>
     <button class="btn" id="signBtn" type="submit">Sign in ↗</button>
+    <button class="linkish" id="usePin" type="button">Use the staff PIN instead</button>
     <a class="back" href="https://ptc-premium-website.vercel.app">← Back to website</a>
   </form>
 
@@ -37,6 +38,7 @@
     <input id="pin" type="password" autocomplete="off" placeholder="PIN" aria-label="Admin PIN" required>
     <p class="err" id="gateErr" role="alert" hidden>Incorrect PIN — try again.</p>
     <button class="btn" type="submit">Unlock ↗</button>
+    <button class="linkish" id="useSignIn" type="button">Staff sign-in to add or delete →</button>
     <a class="back" href="index.html">← Back to website</a>
   </form>
 </section>
@@ -52,6 +54,8 @@
     </a>
     <div class="barRight">
       <span class="ghostbtn" id="source" title="Where this page's data came from">…</span>
+      <span class="who" id="who" hidden></span>
+      <span class="notice" id="notice" role="status" aria-live="polite" hidden></span>
       <a class="ghostbtn" href="https://ptc-premium-website.vercel.app" target="_blank" rel="noopener">View website ↗</a>
       <button class="ghostbtn" id="logout" type="button">Lock</button>
     </div>
@@ -59,6 +63,11 @@
 
   <main class="wrapadmin">
     <div class="stats" id="stats" aria-label="Data summary"></div>
+
+    <p class="editnote" id="editAccess" hidden>
+      <strong>Read-only preview.</strong> Sign in with your staff account to add or delete projects —
+      <button class="linkish" id="editSignIn" type="button">staff sign-in</button>.
+    </p>
 
     <nav class="tabs" id="tabs" aria-label="Data views">
       <button class="tab active" data-tab="overview" aria-selected="true">Overview</button>
@@ -136,11 +145,12 @@
           <button data-export="featured-csv" type="button">CSV</button>
           <button data-export="featured-json" type="button">JSON</button>
         </div>
+        <button class="addbtn" type="button" data-add="projects">＋ Add project</button>
       </div>
       <p class="count" id="count-featured" role="status" aria-live="polite"></p>
       <div class="tablewrap">
         <table id="table-featured">
-          <thead><tr><th>Photo</th><th>Project</th><th>Category</th><th>Location</th><th>Detail</th></tr></thead>
+          <thead><tr><th>Photo</th><th>Project</th><th>Category</th><th>Location</th><th>Detail</th><th style="width:1%">Actions</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -160,11 +170,12 @@
           <button data-export="index-csv" type="button">CSV</button>
           <button data-export="index-json" type="button">JSON</button>
         </div>
+        <button class="addbtn" type="button" data-add="index_entries">＋ Add project</button>
       </div>
       <p class="count" id="count-index" role="status" aria-live="polite"></p>
       <div class="tablewrap">
         <table id="table-index">
-          <thead><tr><th>#</th><th>Category</th><th>Project</th><th>Location</th><th>Detail</th></tr></thead>
+          <thead><tr><th>#</th><th>Category</th><th>Project</th><th>Location</th><th>Detail</th><th style="width:1%">Actions</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -201,6 +212,52 @@
     <span>Preview gate only — real access control requires a server.</span>
   </footer>
 </div>
+
+<!-- ============================================================
+     Add-project dialog — staff accounts only (RLS enforces it)
+     ============================================================ -->
+<dialog class="editor" id="editor" aria-labelledby="editorTitle">
+  <form class="editorForm" id="editorForm" novalidate>
+    <h2 id="editorTitle">Add project</h2>
+    <p class="muted" id="editorHint">Add a project to the website.</p>
+
+    <label class="field">
+      <span>Category</span>
+      <select id="edCategory" required>
+        <option value="building">Institutional &amp; Special</option>
+        <option value="residential">Residential</option>
+        <option value="industrial">Industrial &amp; PEB</option>
+      </select>
+    </label>
+
+    <label class="field">
+      <span>Project name</span>
+      <input id="edName" type="text" maxlength="200" placeholder="e.g. NAMO Medical College Campus" required>
+    </label>
+
+    <label class="field">
+      <span>Location</span>
+      <input id="edLocation" type="text" maxlength="200" placeholder="e.g. Silvassa">
+    </label>
+
+    <label class="field" id="edImageField">
+      <span>Photo file <small>in assets/, e.g. namo-medical-college-silvassa.jpg</small></span>
+      <input id="edImage" type="text" maxlength="300" placeholder="project-photo.jpg">
+    </label>
+
+    <label class="field">
+      <span>Detail</span>
+      <textarea id="edDetail" rows="3" maxlength="500" placeholder="Short description shown on the website"></textarea>
+    </label>
+
+    <p class="err" id="edErr" role="alert" hidden></p>
+
+    <div class="edActions">
+      <button class="ghostbtn" id="edCancel" type="button">Cancel</button>
+      <button class="submitbtn" id="edSave" type="submit">Add project</button>
+    </div>
+  </form>
+</dialog>
 
 <script src="data.js"></script>
 <script src="supabase.js"></script>
