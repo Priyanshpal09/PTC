@@ -23,7 +23,11 @@
     if (reduceMotion) {
       loader.classList.add('done');
     } else {
-      var hideLoader = function () { loader.classList.add('done'); };
+      var hideLoader = function () {
+        loader.classList.add('done');
+        /* releases the hero's paused entrance choreography */
+        document.documentElement.classList.add('loaded');
+      };
       if (document.readyState === 'complete') hideLoader();
       else window.addEventListener('load', hideLoader);
       setTimeout(hideLoader, 2500);
@@ -59,6 +63,7 @@
   var header = $('#header');
   var progress = $('#progress');
   var toTop = $('#toTop');
+  var heroSection = $('#home');
   var ticking = false;
   var lastY = 0;
 
@@ -78,6 +83,11 @@
       }
       if (progress) progress.style.transform = 'scaleX(' + (max > 0 ? Math.min(1, y / max) : 0) + ')';
       if (toTop) toTop.classList.toggle('show', y > 640 && !navOpen);
+      /* hero artwork drifts a little slower than the page for depth */
+      if (heroSection && !reduceMotion) {
+        var heroShift = Math.min(y, heroSection.offsetHeight || 0);
+        heroSection.style.setProperty('--hp', heroShift.toFixed(1) + 'px');
+      }
       lastY = y;
       ticking = false;
     });
@@ -251,6 +261,51 @@
         glowQueued = false;
       });
     }, { passive: true });
+  }
+
+  /* ---------------------------------------------------------
+     Media depth — project and gallery images follow the pointer
+     a few pixels inside their frame (fine pointers, motion ok)
+     --------------------------------------------------------- */
+  function resetDepth(card) {
+    card.style.removeProperty('--px');
+    card.style.removeProperty('--py');
+  }
+
+  var canHover = window.matchMedia && window.matchMedia('(hover:hover) and (pointer:fine)').matches;
+  if (!reduceMotion && canHover) {
+    $$('#projectGrid, #galleryGrid').forEach(function (container) {
+      var active = null;
+      var queued = false;
+      var pointer = { x: 0, y: 0 };
+
+      container.addEventListener('pointermove', function (e) {
+        if (reduceMotion) return;
+        var card = e.target.closest ? e.target.closest('.project, .gTile') : null;
+        if (!card) return;
+        if (card !== active) {
+          if (active) resetDepth(active);
+          active = card;
+        }
+        pointer.x = e.clientX;
+        pointer.y = e.clientY;
+        if (queued) return;
+        queued = true;
+        requestAnimationFrame(function () {
+          var rect = card.getBoundingClientRect();
+          var dx = (pointer.x - rect.left) / rect.width - 0.5;
+          var dy = (pointer.y - rect.top) / rect.height - 0.5;
+          card.style.setProperty('--px', (dx * 10).toFixed(2) + 'px');
+          card.style.setProperty('--py', (dy * 10).toFixed(2) + 'px');
+          queued = false;
+        });
+      }, { passive: true });
+
+      container.addEventListener('pointerleave', function () {
+        if (active) resetDepth(active);
+        active = null;
+      });
+    });
   }
 
   /* ---------------------------------------------------------

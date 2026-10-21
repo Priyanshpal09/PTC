@@ -22,6 +22,16 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Manrope:wght@500;600;700;800&family=Playfair+Display:ital,wght@0,400;0,500;1,400;1,500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 <script>document.documentElement.classList.add('js');</script>
+<!-- Unpause the hero choreography as soon as the page is ready, with a
+     fail-safe so the headline can never stay hidden if a script fails. -->
+<script>
+  (function () {
+    var mark = function () { document.documentElement.classList.add('loaded'); };
+    if (document.readyState === 'complete') mark();
+    else window.addEventListener('load', mark);
+    setTimeout(mark, 2600);
+  })();
+</script>
 
 <!-- Open Graph / social -->
 <meta property="og:type" content="website">
@@ -62,6 +72,7 @@
 </head>
 <body>
 <a class="skip" href="#home">Skip to content</a>
+<div class="grain" aria-hidden="true"></div>
 <div class="loader" id="loader" aria-hidden="true">
   <div class="loaderMark">
     <span class="bars"><i></i><i></i><i></i></span>
@@ -92,9 +103,11 @@
 
 <main>
   <section id="home" class="hero" aria-roledescription="carousel" aria-label="Featured projects">
-    <div class="slide active" style="background-image:url('assets/namo-medical-college-silvassa.jpg')"></div>
-    <div class="slide" style="background-image:url('assets/harved-supremo-gandhinagar.jpg')"></div>
-    <div class="slide" style="background-image:url('assets/sumilon-heavy-industries-kutch.jpg')"></div>
+    <div class="heroSlides" aria-hidden="true">
+      <div class="slide active" style="background-image:url('assets/namo-medical-college-silvassa.jpg')"></div>
+      <div class="slide" style="background-image:url('assets/harved-supremo-gandhinagar.jpg')"></div>
+      <div class="slide" style="background-image:url('assets/sumilon-heavy-industries-kutch.jpg')"></div>
+    </div>
     <span class="heroGlow" aria-hidden="true"></span>
     <div class="wrap heroInner">
       <div class="eyebrow heroKicker">Structural design consultancy · Ahmedabad, Gujarat</div>

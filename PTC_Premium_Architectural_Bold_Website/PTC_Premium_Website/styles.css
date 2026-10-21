@@ -1232,8 +1232,136 @@ html{scroll-padding-top:calc(var(--header-h) + 10px)}
 /* filter chips — tactile press */
 .filter:active{transform:scale(.96)}
 
+/* ============================================================
+   Finish — depth, texture & refined motion
+   ============================================================ */
+
+/* hero entrance waits for the loader, so the choreography is seen */
+html.js:not(.loaded) .hero .heroKicker,
+html.js:not(.loaded) .hero h1,
+html.js:not(.loaded) .hero .heroLead,
+html.js:not(.loaded) .hero .buttons,
+html.js:not(.loaded) .heroAside,
+html.js:not(.loaded) .heroBottom{animation-play-state:paused}
+
+/* hero artwork drifts slower than the page */
+.heroSlides{
+  position:absolute;inset:0;z-index:-3;
+  transform:translate3d(0,calc(var(--hp,0px) * .14),0);
+  will-change:transform;
+}
+.hero .slide{z-index:0}
+.heroInner{
+  transform:translate3d(0,calc(var(--hp,0px) * .06),0);
+  will-change:transform;
+}
+
+/* a hairline of accent under the italic line */
+.hero h1 em{position:relative}
+.hero h1 em:after{
+  content:'';position:absolute;left:.02em;right:.02em;bottom:-.04em;height:1px;
+  background:linear-gradient(90deg,#eab3b000,#eab3b0cc 14%,#eab3b0cc 86%,#eab3b000);
+  transform:scaleX(0);transform-origin:0 50%;
+}
+html.loaded .hero h1 em:after{animation:drawLine 1.5s var(--ease) 1.05s both}
+@keyframes drawLine{to{transform:scaleX(1)}}
+
+/* section headings rise out of a mask */
+.sectionhead.reveal h2,
+.aboutcopy.reveal h2{
+  clip-path:inset(0 0 100% 0);
+  transition:clip-path 1.05s var(--ease) .05s;
+}
+.sectionhead.reveal.visible h2,
+.aboutcopy.reveal.visible h2{clip-path:inset(0 0 -12% 0)}
+
+/* photographs settle out of a slight zoom as their section arrives */
+.aboutimage.reveal:not(.visible) img,
+.awardgrid .reveal:not(.visible) img{transform:scale(1.07)}
+.awardgrid .reveal img{transition:transform 1.4s var(--ease)}
+
+/* media cards gain depth under the pointer */
+.project img{transform:translate3d(var(--px,0),var(--py,0),0)}
+.project:hover img,.project:focus-visible img{
+  transform:translate3d(var(--px,0),var(--py,0),0) scale(1.06);
+}
+.gTile img{transform:translate3d(var(--px,0),var(--py,0),0)}
+.gTile:hover img,.gTile:focus-visible img{
+  transform:translate3d(var(--px,0),var(--py,0),0) scale(1.05);
+}
+
+/* gallery tiles lift off the page (keep the reveal fade intact) */
+.gTile{transition:opacity .7s var(--ease),transform var(--slow),box-shadow var(--slow)}
+.gTile:hover,.gTile:focus-visible{
+  transform:translateY(-4px);
+  box-shadow:0 30px 56px -28px #15171a73;
+}
+
+/* filter pills — soft lift */
+.filter{transition:background var(--fast),border-color var(--fast),color var(--fast),transform var(--fast)}
+.filter:hover{transform:translateY(-1px)}
+
+/* fine paper grain over the whole page (desktop only, very low opacity) */
+.grain{
+  position:fixed;inset:0;z-index:3;pointer-events:none;
+  opacity:.045;mix-blend-mode:multiply;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='180' height='180'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='180' height='180' filter='url(%23n)' opacity='.5'/%3E%3C/svg%3E");
+  background-size:180px 180px;
+}
+@media(max-width:960px){.grain{display:none}}
+
+/* dark sections gain a faint architectural glow */
+.section.dark{
+  background-image:
+    radial-gradient(760px 420px at 88% -10%,#b7232c24,transparent 62%),
+    radial-gradient(600px 380px at 2% 106%,#ffffff0d,transparent 58%);
+}
+
+/* the marquee fades into its edges */
+.marquee{position:relative}
+.marquee:before,.marquee:after{
+  content:'';position:absolute;top:0;bottom:0;z-index:2;pointer-events:none;
+  width:clamp(40px,8vw,120px);
+}
+.marquee:before{left:0;background:linear-gradient(90deg,#191b1e,#191b1e00)}
+.marquee:after{right:0;background:linear-gradient(270deg,#191b1e,#191b1e00)}
+
+/* stage numbers — rule extends on hover */
+.stageNo:after{transition:width .45s var(--ease)}
+.stages article:hover .stageNo:after{width:44px}
+
+/* footer — a warm hairline where the dark plate begins */
+footer{position:relative}
+footer:before{
+  content:'';position:absolute;top:0;left:0;right:0;height:1px;
+  background:linear-gradient(90deg,transparent,#b7232c80 30%,#b7232c80 70%,transparent);
+}
+
+/* navigation call-to-action — a little glow on hover */
+.navcta:hover{box-shadow:0 14px 30px -14px #b7232ccc}
+
+/* lightbox panel rises into place */
+.lightbox.open .lbInner{animation:lbPop .45s var(--ease) both}
+@keyframes lbPop{from{opacity:0;transform:translateY(14px) scale(.985)}to{opacity:1;transform:none}}
+
+/* back to top — lift on hover */
+.toTop:hover{transform:translateY(-3px)}
+
 /* new motion respects reduced-motion preferences */
 @media(prefers-reduced-motion:reduce){
+  .hero .heroKicker,.hero h1,.hero .heroLead,.hero .buttons,
+  .heroAside,.heroBottom{animation:none!important;opacity:1;transform:none}
+  .hero .slide.active{animation:none}
+  .hero h1 em:after{display:none}
+  .heroSlides,.heroInner{transform:none}
+  .sectionhead.reveal h2,.sectionhead.reveal.visible h2,
+  .aboutcopy.reveal h2,.aboutcopy.reveal.visible h2{clip-path:none}
+  .aboutimage.reveal:not(.visible) img,.awardgrid .reveal:not(.visible) img{transform:none}
+  .lightbox.open .lbInner{animation:none}
+  .grain{display:none}
+  .gTile:hover{transform:none}
+  .stageNo:after{transition:none}
+  .filter:hover{transform:none}
   .top.hide{transform:none}
   .heroGlow{display:none}
   .number:hover,.ixRow:hover{transform:none}
