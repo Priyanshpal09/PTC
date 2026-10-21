@@ -546,23 +546,32 @@ section[id]{scroll-margin-top:86px}
 /* ============================================================
    Filter pills
    ============================================================ */
-.filters{display:flex;flex-wrap:wrap;gap:8px}
+.filters{
+  display:flex;flex-wrap:wrap;align-items:center;
+  gap:10px 8px;margin-bottom:clamp(24px,2.6vw,34px);
+}
 .filter{
-  padding:10px 17px;border:1px solid var(--line);border-radius:var(--pill);
+  display:inline-flex;align-items:center;min-height:40px;
+  padding:10px 18px;border:1px solid var(--line);border-radius:var(--pill);
   font-family:var(--ui);font-size:11.5px;font-weight:600;letter-spacing:.02em;
   color:var(--ink-3);background:transparent;
   transition:background var(--fast),border-color var(--fast),color var(--fast);
 }
 .filter:hover{border-color:#c8c2b9;color:var(--ink)}
 .filter.active{background:var(--ink);border-color:var(--ink);color:#fff;box-shadow:var(--shadow-xs)}
+.filter:focus-visible{outline-offset:2px}
 
 /* ============================================================
    Featured projects
    ============================================================ */
 .projects{
-  display:grid;grid-template-columns:repeat(3,1fr);gap:24px;
+  display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(16px,1.9vw,26px);
   transition:opacity .24s var(--ease),transform .24s var(--ease);
   place-items:stretch;
+}
+#projects .note{
+  max-width:78ch;margin-top:clamp(24px,2.6vw,32px);padding-top:20px;
+  border-top:1px solid var(--line-soft);
 }
 .projects.swapping{opacity:0;transform:translateY(10px)}
 .project{
@@ -585,17 +594,17 @@ section[id]{scroll-margin-top:86px}
   transition:opacity var(--slow);
 }
 .project:hover:after{opacity:.94}
-.project .detail{padding:clamp(20px,2.2vw,28px);width:100%}
+.project .detail{padding:clamp(22px,2.2vw,30px);width:100%}
 .project small{
   display:block;font-family:var(--ui);font-size:9.5px;font-weight:700;
   letter-spacing:.18em;text-transform:uppercase;color:#f3b7b4;
 }
 .project h3{
   font-family:var(--serif);font-weight:400;font-size:clamp(21px,2vw,25px);
-  line-height:1.2;letter-spacing:-.02em;margin:9px 0 6px;
+  line-height:1.22;letter-spacing:-.02em;margin:10px 0 8px;
 }
 .project p{
-  margin:0;font-size:12.5px;line-height:1.55;color:#d5d3d0;
+  margin:0;font-size:12.5px;line-height:1.6;color:#d5d3d0;
 }
 .project .arrow{
   display:inline-block;margin-left:4px;font-size:16px;
@@ -618,15 +627,17 @@ section[id]{scroll-margin-top:86px}
 /* ============================================================
    Gallery
    ============================================================ */
+#gallery .filters{margin-bottom:clamp(16px,1.4vw,18px)}
+#gallery .indexCount{margin:0 0 clamp(16px,1.8vw,22px)}
 .galleryGrid{
-  display:grid;grid-template-columns:repeat(4,1fr);gap:16px;
+  display:grid;grid-template-columns:repeat(4,1fr);gap:clamp(12px,1.4vw,18px);
   transition:opacity .24s var(--ease),transform .24s var(--ease);
   place-items:stretch;
 }
 .galleryGrid.swapping{opacity:0;transform:translateY(8px)}
 .gTile{
   position:relative;margin:0;overflow:hidden;aspect-ratio:4/3;
-  border-radius:12px;background:#e9e4de;cursor:pointer;
+  border-radius:var(--r-md);background:#e9e4de;cursor:pointer;
   transition:box-shadow var(--slow);
 }
 .gTile:hover,.gTile:focus-visible{box-shadow:var(--shadow-sm)}
@@ -640,11 +651,18 @@ section[id]{scroll-margin-top:86px}
 .gTile:hover:after,.gTile:focus-visible:after{opacity:1}
 .gTile figcaption{
   position:absolute;left:0;right:0;bottom:0;z-index:2;
-  padding:14px;font-size:11px;line-height:1.5;color:#fff;
+  padding:16px;font-family:var(--ui);font-size:11px;font-weight:600;
+  line-height:1.45;letter-spacing:.01em;color:#fff;
   opacity:0;transform:translateY(8px);
   transition:opacity var(--fast),transform var(--fast);
 }
 .gTile:hover figcaption,.gTile:focus-visible figcaption{opacity:1;transform:none}
+
+/* touch screens have no hover — keep the caption and category visible */
+@media(hover:none){
+  .gTile:after{opacity:.72}
+  .gTile figcaption,.gTile .gTag{opacity:1;transform:none}
+}
 .gTag{
   position:absolute;top:10px;left:10px;z-index:2;
   padding:5px 9px;border-radius:var(--pill);
@@ -1053,7 +1071,9 @@ footer{background:#0f1113;color:#a2a3a1;padding:clamp(46px,6vw,68px) 0 22px;font
   .groups{grid-template-columns:1fr}
   .projects{grid-template-columns:1fr 1fr;gap:14px}
   .project{aspect-ratio:3/4}
-  .galleryGrid{grid-template-columns:repeat(2,1fr);gap:10px}
+  .galleryGrid{grid-template-columns:repeat(2,1fr);gap:12px}
+  #projects .note{padding-top:16px}
+  .filter{min-height:38px;padding:9px 15px;font-size:11px}
   .values ul{grid-template-columns:1fr 1fr}
   .ixRow{grid-template-columns:1fr;gap:4px;padding:16px 6px}
   .ixTag{margin-bottom:2px}
@@ -1080,7 +1100,9 @@ footer{background:#0f1113;color:#a2a3a1;padding:clamp(46px,6vw,68px) 0 22px;font
 
   .projects{grid-template-columns:1fr}
   .project{aspect-ratio:4/4.4}
-  .galleryGrid{grid-template-columns:1fr 1fr}
+  .galleryGrid{grid-template-columns:1fr 1fr;gap:10px}
+  .gTile figcaption{padding:12px;font-size:10.5px}
+  .filters{gap:8px}
   .values ul{grid-template-columns:1fr}
   .stages{grid-template-columns:1fr}
   .stages article{border-left:0;border-top:1px solid var(--line-soft)}
