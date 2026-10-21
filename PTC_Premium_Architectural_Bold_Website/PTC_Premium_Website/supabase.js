@@ -314,8 +314,9 @@
   /* ---------------------------------------------------------
      Project content — add and delete (staff accounts only)
      The tuple shapes above carry the row id in their last slot:
-       projects      [category, name, location, image, detail, id]
-       index_entries [category, name, location, detail, id]
+       projects       [category, name, location, image, detail, id]
+       index_entries  [category, name, location, detail, id]
+       gallery_photos [image, caption, category, id]
      --------------------------------------------------------- */
   DB.addProject = function (project) {
     return insert('projects', {
@@ -342,6 +343,18 @@
 
   DB.deleteIndexEntry = function (id) {
     return remove('index_entries', id, 'Deleting project index entry');
+  };
+
+  DB.addGalleryPhoto = function (photo) {
+    return insert('gallery_photos', {
+      image: text(photo.image),
+      caption: text(photo.caption),
+      category: text(photo.category)
+    }, 'Adding gallery photograph');
+  };
+
+  DB.deleteGalleryPhoto = function (id) {
+    return remove('gallery_photos', id, 'Deleting gallery photograph');
   };
 
   DB.signIn = signIn;

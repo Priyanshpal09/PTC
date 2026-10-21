@@ -196,11 +196,12 @@
           <button data-export="gallery-csv" type="button">CSV</button>
           <button data-export="gallery-json" type="button">JSON</button>
         </div>
+        <button class="addbtn" type="button" data-add="gallery_photos">＋ Add photograph</button>
       </div>
       <p class="count" id="count-gallery" role="status" aria-live="polite"></p>
       <div class="tablewrap">
         <table id="table-gallery">
-          <thead><tr><th>Photo</th><th>Caption</th><th>Category</th><th>File</th></tr></thead>
+          <thead><tr><th>Photo</th><th>Caption</th><th>Category</th><th>File</th><th style="width:1%">Actions</th></tr></thead>
           <tbody></tbody>
         </table>
       </div>
@@ -231,11 +232,11 @@
     </label>
 
     <label class="field">
-      <span>Project name</span>
+      <span id="edNameLabel">Project name</span>
       <input id="edName" type="text" maxlength="200" placeholder="e.g. NAMO Medical College Campus" required>
     </label>
 
-    <label class="field">
+    <label class="field" id="edLocationField">
       <span>Location</span>
       <input id="edLocation" type="text" maxlength="200" placeholder="e.g. Silvassa">
     </label>
@@ -245,7 +246,7 @@
       <input id="edImage" type="text" maxlength="300" placeholder="project-photo.jpg">
     </label>
 
-    <label class="field">
+    <label class="field" id="edDetailField">
       <span>Detail</span>
       <textarea id="edDetail" rows="3" maxlength="500" placeholder="Short description shown on the website"></textarea>
     </label>

@@ -262,7 +262,7 @@
       var email = DB && DB.user && DB.user.email;
       whoBadge.hidden = !signedIn;
       whoBadge.textContent = signedIn ? 'Signed in · ' + (email || 'staff') : '';
-      whoBadge.title = signedIn ? 'This account can add and delete projects' : '';
+      whoBadge.title = signedIn ? 'This account can add and delete website content' : '';
     }
 
     $$('.addbtn').forEach(function (btn) {
@@ -712,8 +712,9 @@
         '<td class="proj">' + esc(g[1]) + '</td>' +
         '<td><span class="tag">' + esc(g[2]) + '</span></td>' +
         '<td class="file">' + esc(g[0]) + '</td>' +
+        deleteCell('gallery_photos', g[3], g[1]) +
         '</tr>';
-    }).join('') || '<tr><td colspan="4" class="muted empty">No photographs match that search.</td></tr>';
+    }).join('') || '<tr><td colspan="5" class="muted empty">No photographs match that search.</td></tr>';
   }
 
   function render(name) {
@@ -724,19 +725,52 @@
   }
 
   /* ============================================================
-     Add / delete projects — staff accounts only
+     Add / delete content — staff accounts only
      ============================================================ */
   var EDITOR_COPY = {
     projects: {
       title: 'Add featured project',
       hint: 'Adds a project card to the Featured projects section of the website.',
-      image: true
+      image: true,
+      nameLabel: 'Project name',
+      namePlaceholder: 'e.g. NAMO Medical College Campus',
+      showDetails: true
     },
     index_entries: {
       title: 'Add project index entry',
       hint: 'Adds a row to the complete project index on the website.',
-      image: false
+      image: false,
+      nameLabel: 'Project name',
+      namePlaceholder: 'e.g. NAMO Medical College Campus',
+      showDetails: true
+    },
+    gallery_photos: {
+      title: 'Add gallery photograph',
+      hint: 'Adds a photograph to the Photo gallery section of the website.',
+      image: true,
+      nameLabel: 'Caption',
+      namePlaceholder: 'e.g. NAMO Medical College Campus, Silvassa',
+      showDetails: false
     }
+  };
+
+  /* project categories use slugs, gallery photographs use display labels */
+  var EDITOR_CATEGORIES = {
+    projects: [
+      ['building', 'Institutional & Special'],
+      ['residential', 'Residential'],
+      ['industrial', 'Industrial & PEB']
+    ],
+    index_entries: [
+      ['building', 'Institutional & Special'],
+      ['residential', 'Residential'],
+      ['industrial', 'Industrial & PEB']
+    ],
+    gallery_photos: [
+      ['Institutional & Special', 'Institutional & Special'],
+      ['Residential', 'Residential'],
+      ['Industrial & PEB', 'Industrial & PEB']
+    ]
   };
 
   var editor = $('#editor');
@@ -749,7 +783,7 @@
     if (!copy || !editor) return;
 
     if (!DB || !DB.configured) {
-      notify('Connect Supabase to add projects — the PIN view only reads data.js.', true);
+      notify('Connect Supabase to add content — the PIN view only reads data.js.', true);
       return;
     }
     if (!DB.signedIn) {
@@ -761,8 +795,23 @@
     $('#editorTitle').textContent = copy.title;
     $('#editorHint').textContent = copy.hint;
     $('#edImageField').hidden = !copy.image;
+    $('#edLocationField').hidden = !copy.showDetails;
+    $('#edDetailField').hidden = !copy.showDetails;
+    $('#edNameLabel').textContent = copy.nameLabel;
+    $('#edName').placeholder = copy.namePlaceholder;
+    $('#edImage').required = kind === 'gallery_photos';
     $('#edErr').hidden = true;
-    $('#edCategory').value = 'building';
+
+    var categories = EDITOR_CATEGORIES[kind] || EDITOR_CATEGORIES.projects;
+    var select = $('#edCategory');
+    select.innerHTML = '';
+    categories.forEach(function (pair) {
+      var option = document.createElement('option');
+      option.value = pair[0];
+      option.textContent = pair[1];
+      select.appendChild(option);
+    });
+
     $('#edName').value = '';
     $('#edLocation').value = '';
     $('#edImage').value = '';
@@ -811,32 +860,44 @@
           return;
         }
 
+        var kind = editorKind;
+        var isGallery = kind === 'gallery_photos';
         var name = $('#edName').value.trim();
+        var image = $('#edImage').value.trim();
         var category = $('#edCategory').value;
+
         if (!name) {
-          editorError('Enter the project name.');
+          editorError(isGallery ? 'Enter a caption for the photograph.' : 'Enter the project name.');
           $('#edName').focus();
           return;
         }
+        if (isGallery && !image) {
+          editorError('Enter the photo filename in assets/, e.g. project-photo.jpg.');
+          $('#edImage').focus();
+          return;
+        }
 
-        var payload = {
-          category: category,
-          name: name,
-          location: $('#edLocation').value.trim(),
-          image: $('#edImage').value.trim(),
-          detail: $('#edDetail').value.trim()
-        };
-        var kind = editorKind;
+        var payload = isGallery
+          ? { image: image, caption: name, category: category }
+          : {
+              category: category,
+              name: name,
+              location: $('#edLocation').value.trim(),
+              image: image,
+              detail: $('#edDetail').value.trim()
+            };
         var saveBtn = $('#edSave');
 
         $('#edErr').hidden = true;
         saveBtn.disabled = true;
         saveBtn.textContent = 'Saving…';
 
-        var action = kind === 'projects' ? DB.addProject(payload) : DB.addIndexEntry(payload);
+        var action = kind === 'projects' ? DB.addProject(payload)
+          : kind === 'gallery_photos' ? DB.addGalleryPhoto(payload)
+          : DB.addIndexEntry(payload);
         action.then(function () {
           closeEditor();
-          notify((kind === 'projects' ? 'Project' : 'Index entry') + ' “' + name + '” added.');
+          notify((kind === 'projects' ? 'Project' : kind === 'gallery_photos' ? 'Photograph' : 'Index entry') + ' “' + name + '” added.');
           return DB.reload();
         }).catch(function (err) {
           editorError((err && err.message) ? err.message : 'Could not save — please try again.');
@@ -855,13 +916,13 @@
     var DB = window.PTC_DB;
     var table = btn.getAttribute('data-delete');
     var id = btn.getAttribute('data-id');
-    var label = btn.getAttribute('data-name') || 'this project';
+    var label = btn.getAttribute('data-name') || 'this item';
 
     if (!DB || !DB.signedIn) {
-      notify('Staff sign-in required — use the “staff sign-in” link to delete projects.', true);
+      notify('Staff sign-in required — use the “staff sign-in” link to delete content.', true);
       return;
     }
-    if (table !== 'projects' && table !== 'index_entries') return;
+    if (table !== 'projects' && table !== 'index_entries' && table !== 'gallery_photos') return;
     if (!id) {
       notify('This row has no database id yet — reload the console once Supabase is connected.', true);
       return;
@@ -869,7 +930,9 @@
     if (!window.confirm('Delete “' + label + '” from the website?\n\nThis cannot be undone.')) return;
 
     btn.disabled = true;
-    var action = table === 'projects' ? DB.deleteProject(id) : DB.deleteIndexEntry(id);
+    var action = table === 'projects' ? DB.deleteProject(id)
+      : table === 'gallery_photos' ? DB.deleteGalleryPhoto(id)
+      : DB.deleteIndexEntry(id);
     action.then(function () {
       notify('Deleted “' + label + '”.');
       return DB.reload();
